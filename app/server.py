@@ -92,12 +92,14 @@ class Handler(BaseHTTPRequestHandler):
             self._static("betrieb.html")
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
-            self._json({"status": "ok"})
+            self._json({"status": "ok", "version": config.VERSION,
+                        "seiten": ["/", "/betrieb"]})
         elif pfad == "/api/modelle":
             self._json({
                 "ollamaUrl": config.OLLAMA_URL,
                 "publicUrl": config.PUBLIC_OLLAMA_URL,
                 "vendor": config.VENDOR_NAME,
+                "version": config.VERSION,
                 "modelle": config.MODELS,
             })
         elif pfad == "/api/vscode-config":

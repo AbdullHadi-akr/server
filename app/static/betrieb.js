@@ -314,5 +314,8 @@ holen("/api/vram").then((daten) => {
   }
   berechnen();
 });
+holen("/healthz").then((d) => {
+  document.getElementById("fuss-version").textContent = d.version || "?";
+});
 statusLaden();
 setInterval(statusLaden, 30000);

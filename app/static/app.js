@@ -36,6 +36,7 @@ async function seiteAufbauen() {
 
   document.getElementById("kopf-url").textContent = daten.publicUrl;
   document.getElementById("fuss-url").textContent = daten.publicUrl;
+  document.getElementById("fuss-version").textContent = daten.version || "?";
   document.getElementById("curl-test").textContent = "curl " + daten.publicUrl + "/api/version";
   document.getElementById("konfig").textContent = JSON.stringify(konfig, null, "\t");
   document.getElementById("modellnamen").textContent =

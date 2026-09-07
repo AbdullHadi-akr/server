@@ -18,6 +18,20 @@ docker run -d --name modell-portal -p 5021:5021 \
 
 Danach im Browser: <http://localhost:5021> bzw. `http://<host>:5021`.
 
+## Aktualisieren
+
+Ein `docker compose up -d` allein baut das Image **nicht** neu – der Container
+läuft dann weiter mit dem alten Stand und neue Seiten fehlen. Nach jedem
+`git pull` daher:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Welcher Stand tatsächlich läuft, steht im Fuß jeder Seite und unter
+<http://localhost:5021/healthz>.
+
 ## Konfiguration
 
 Alles über Umgebungsvariablen:
