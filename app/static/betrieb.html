@@ -137,6 +137,28 @@ KV-Cache = 96 KiB/Token × Nutzeranzahl × Kontext × KV-Faktor</pre>
       50 000 Token ergeben 37,0 GiB – gemessen wurden 37 GiB.
     </p>
   </section>
+  <section id="modellverwaltung">
+    <h2>Modelle</h2>
+    <div id="modell-liste">Lade …</div>
+
+    <h3 class="untertitel">Modell nachladen oder aktualisieren</h3>
+    <div class="regler">
+      <label for="f-modellname">Modellname, wie ihn Ollama kennt</label>
+      <input type="text" id="f-modellname" placeholder="z. B. qwen3:30b-a3b"
+             autocomplete="off" spellcheck="false">
+      <div class="knopfleiste">
+        <button id="btn-modell-laden" class="primaer">Laden</button>
+        <span id="modell-meldung" class="status"></span>
+      </div>
+    </div>
+    <div id="modell-fortschritt"></div>
+    <p class="hinweis">
+      Ein erneutes Laden eines bereits vorhandenen Modells aktualisiert es.
+      Während des Ladens bleibt Ollama erreichbar; der Vorgang belegt aber
+      Bandbreite und Plattenplatz.
+    </p>
+  </section>
+
   <section id="konto">
     <h2>Passwort</h2>
     <form id="passwort-formular" class="regler" autocomplete="off">

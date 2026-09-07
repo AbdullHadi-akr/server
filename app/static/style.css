@@ -224,3 +224,24 @@ h3.untertitel { font-size: 15px; color: var(--gedaempft); margin: 26px 0 10px; f
 }
 .slot.belegt { background: rgba(76, 141, 255, 0.22); border-color: var(--akzent); color: var(--text); font-weight: 600; }
 .slot.ueberzaehlig { background: rgba(229, 96, 107, 0.22); border-color: var(--schlecht); color: var(--text); font-weight: 600; }
+
+/* --- Modellverwaltung ------------------------------------------------- */
+.regler input[type="text"] {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 9px 12px; font-size: 15px; max-width: 420px;
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+table.modelle { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.modelle th {
+  text-align: left; color: var(--gedaempft); font-weight: 600;
+  padding: 8px 10px; border-bottom: 1px solid var(--rand); white-space: nowrap;
+}
+table.modelle td { padding: 8px 10px; border-bottom: 1px solid var(--rand); }
+table.modelle tr:last-child td { border-bottom: 0; }
+table.modelle .name { font-family: "Cascadia Code", Consolas, monospace; }
+table.modelle button { padding: 5px 10px; font-size: 13px; }
+.tabellenhuelle {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: 10px; overflow-x: auto;
+}

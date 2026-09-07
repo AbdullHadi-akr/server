@@ -374,6 +374,122 @@ async function uebernehmen() {
   setTimeout(hinweiseLaden, 2500);
 }
 
+// --- Modellverwaltung --------------------------------------------------
+let fortschrittTakt = null;
+
+async function modelleLaden() {
+  const ziel = document.getElementById("modell-liste");
+  const daten = await holen("/api/modelle/liste");
+  ziel.textContent = "";
+
+  if (!daten.ok) {
+    ziel.appendChild(el("p", "detail", "Nicht abrufbar: " + daten.fehler));
+    return;
+  }
+
+  const huelle = el("div", "tabellenhuelle");
+  const tabelle = el("table", "modelle");
+  const kopf = el("tr");
+  ["Modell", "Größe", "Quantisierung", "Stand", ""].forEach((t) => {
+    kopf.appendChild(el("th", null, t));
+  });
+  tabelle.appendChild(kopf);
+
+  daten.modelle.forEach((m) => {
+    const zeile = el("tr");
+    const namensfeld = el("td", "name");
+    namensfeld.appendChild(el("span", null, m.name));
+    if (m.inKonfiguration) {
+      namensfeld.appendChild(el("span", "abzeichen neutral", "in Konfiguration"));
+    }
+    zeile.appendChild(namensfeld);
+    zeile.appendChild(el("td", null, m.groesseGib + " GiB"));
+    zeile.appendChild(el("td", null, m.quantisierung || "–"));
+    zeile.appendChild(el("td", null, m.geaendert || "–"));
+
+    const knoepfe = el("td");
+    const aktualisieren = el("button", null, "Aktualisieren");
+    aktualisieren.addEventListener("click", () => modellLaden(m.name));
+    const loeschen = el("button", null, "Löschen");
+    loeschen.addEventListener("click", () => modellLoeschen(m));
+    knoepfe.appendChild(aktualisieren);
+    knoepfe.appendChild(loeschen);
+    zeile.appendChild(knoepfe);
+    tabelle.appendChild(zeile);
+  });
+  huelle.appendChild(tabelle);
+  ziel.appendChild(huelle);
+
+  const teile = ["Zusammen " + daten.summeGib + " GiB"];
+  if (daten.platte && daten.platte.ok) {
+    teile.push("Platte: " + daten.platte.belegt + " von " + daten.platte.gesamt +
+      " belegt (" + daten.platte.anteil + "), " + daten.platte.frei + " frei");
+  }
+  ziel.appendChild(el("p", "hinweis", teile.join(" · ")));
+}
+
+async function modellLaden(name) {
+  const feld = document.getElementById("f-modellname");
+  const gewaehlt = (name || feld.value).trim();
+  const anzeige = document.getElementById("modell-meldung");
+  if (!gewaehlt) {
+    anzeige.textContent = "Bitte einen Modellnamen angeben.";
+    return;
+  }
+  anzeige.textContent = "…";
+  const daten = await senden("/api/modelle/laden", { name: gewaehlt });
+  anzeige.textContent = daten.ok ? "" : daten.fehler;
+  if (daten.ok) {
+    feld.value = "";
+    fortschrittVerfolgen();
+  }
+}
+
+async function modellLoeschen(modell) {
+  const frage = modell.inKonfiguration
+    ? modell.name + " steht in der chatLanguageModels.json der Nutzer.\n\n" +
+      "Nach dem Löschen findet VS Code das Modell nicht mehr. Wirklich löschen?"
+    : modell.name + " endgültig löschen?";
+  if (!window.confirm(frage)) return;
+
+  const anzeige = document.getElementById("modell-meldung");
+  const daten = await senden("/api/modelle/loeschen",
+    { name: modell.name, bestaetigt: true });
+  anzeige.textContent = daten.ok ? "Gelöscht: " + daten.geloescht : daten.fehler;
+  modelleLaden();
+}
+
+function fortschrittVerfolgen() {
+  if (fortschrittTakt) return;
+  fortschrittTakt = setInterval(async () => {
+    const daten = await holen("/api/modelle/fortschritt");
+    const ziel = document.getElementById("modell-fortschritt");
+    ziel.textContent = "";
+
+    if (!daten.modell) return;
+    const karte = el("div", "karte flach");
+    karte.appendChild(el("h4", null, daten.modell));
+    const teile = [daten.status || "…"];
+    if (daten.gesamtGib) {
+      teile.push(daten.geladenGib + " von " + daten.gesamtGib + " GiB");
+    }
+    karte.appendChild(el("p", "detail", teile.join(" · ")));
+    if (daten.gesamtGib) karte.appendChild(balken(daten.prozent, false));
+    if (daten.fehler) karte.appendChild(el("p", "tipp", daten.fehler));
+    ziel.appendChild(karte);
+
+    if (!daten.aktiv) {
+      clearInterval(fortschrittTakt);
+      fortschrittTakt = null;
+      modelleLaden();
+      statusLaden();
+    }
+  }, 1000);
+}
+
+document.getElementById("btn-modell-laden")
+  .addEventListener("click", () => modellLaden());
+
 // --- Logs --------------------------------------------------------------
 async function logsLaden() {
   const bereich = document.getElementById("log-bereich");
@@ -430,6 +546,8 @@ function starten() {
   });
   statusLaden();
   hinweiseLaden();
+  modelleLaden();
+  fortschrittVerfolgen();
   setInterval(statusLaden, 30000);
 }
 

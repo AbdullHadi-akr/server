@@ -5,7 +5,8 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import auth, config, dockerctl, gpu, nutzung, ollama, pruefung, vram
+from . import (auth, config, dockerctl, gpu, modelle, nutzung, ollama,
+               pruefung, vram)
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -145,6 +146,12 @@ class Handler(BaseHTTPRequestHandler):
             self._vram(parameter)
         elif pfad == "/api/nutzung":
             self._nutzung()
+        elif pfad == "/api/modelle/liste":
+            self._json(modelle.liste())
+        elif pfad == "/api/modelle/fortschritt":
+            self._json({"ok": True, **modelle.fortschritt()})
+        elif pfad == "/api/modelle/details":
+            self._json(modelle.details((parameter.get("name") or [""])[0]))
         elif pfad == "/api/gpu":
             self._json({"ok": True, **gpu.werte()})
         elif pfad == "/api/pruefung":
@@ -298,6 +305,10 @@ class Handler(BaseHTTPRequestHandler):
             self._docker_aktion(rumpf)
         elif pfad == "/api/docker/einstellungen":
             self._einstellungen(rumpf)
+        elif pfad == "/api/modelle/laden":
+            self._modell_laden(rumpf)
+        elif pfad == "/api/modelle/loeschen":
+            self._modell_loeschen(rumpf)
         elif pfad == "/api/auth/einrichten":
             self._auth_einrichten(rumpf)
         elif pfad == "/api/auth/anmelden":
@@ -309,6 +320,23 @@ class Handler(BaseHTTPRequestHandler):
             self._auth_passwort(rumpf)
         else:
             self._fehler("Unbekannter Endpunkt", 404)
+
+    def _modell_laden(self, rumpf):
+        if not self._darf_schreiben():
+            return
+        try:
+            self._json(modelle.laden(str(rumpf.get("name", "")).strip()))
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+
+    def _modell_loeschen(self, rumpf):
+        if not self._darf_schreiben():
+            return
+        try:
+            self._json(modelle.loeschen(str(rumpf.get("name", "")).strip(),
+                                        bool(rumpf.get("bestaetigt"))))
+        except ValueError as fehler:
+            self._fehler(str(fehler))
 
     def _auth_einrichten(self, rumpf):
         try:

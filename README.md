@@ -225,6 +225,21 @@ Maximaldauer sowie Fehler.
 Ist die Live-Messung nicht möglich (kein Docker-Socket, `exec` untersagt), sagt
 die Seite das und der Rückblick funktioniert unabhängig davon weiter.
 
+## Modellverwaltung
+
+Auf der Einstellungsseite, hinter der Anmeldung. Erspart den Weg über SSH auf
+den GPU-Server:
+
+- **Liste** aller installierten Modelle mit Größe, Quantisierung und Stand,
+  dazu die Belegung der Platte im Modellverzeichnis (`df` im Container).
+- **Nachladen und Aktualisieren** über `ollama pull` mit Fortschrittsbalken.
+  Der Vorgang läuft in einem Hintergrund-Thread; die Seite fragt den Stand
+  jede Sekunde ab. Es läuft immer nur ein Ladevorgang gleichzeitig – zwei
+  würden sich Bandbreite und Platte streitig machen.
+- **Löschen.** Modelle, die in der `chatLanguageModels.json` der Nutzer stehen,
+  sind als solche markiert und verlangen eine ausdrückliche Bestätigung –
+  sonst findet VS Code sie anschließend nicht mehr.
+
 ## Plausibilitätsprüfung
 
 Übersicht und Einstellungsseite zeigen Hinweise, wenn Konfiguration und
@@ -296,6 +311,9 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 | `GET /api/vram`          | VRAM-Schätzung (`?parallel=…&kontext=…&kv=…&modelle=…`). |
 | `GET /api/gpu`           | Gemessene GPU-Werte via `nvidia-smi`. |
 | `GET /api/pruefung`      | Hinweise auf unstimmige Einstellungen. |
+| `GET /api/modelle/liste` | Installierte Modelle und Plattenbelegung. |
+| `GET /api/modelle/fortschritt` | Stand eines laufenden `pull`. |
+| `POST /api/modelle/laden` \| `/loeschen` | Modell nachladen bzw. entfernen. |
 | `POST /api/docker/aktion` | `{"aktion": "start"\|"stopp"\|"neustart"}` |
 | `POST /api/docker/einstellungen` | `{"parallel": 4, "kontext": 50000, "kv": "f16"}` |
 | `GET /uebersicht`        | Nur-Lese-Übersicht. |
@@ -328,6 +346,7 @@ app/
   vram.py       VRAM-Schätzung aus Nutzeranzahl, Kontext und KV-Cache-Typ
   gpu.py        Echte GPU-Werte über nvidia-smi im Ollama-Container
   pruefung.py   Plausibilitätsprüfung von Konfiguration und Messwerten
+  modelle.py    Modelle auflisten, nachladen (Strom-Fortschritt), löschen
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
   static/       index.html, uebersicht.html, betrieb.html,
                 style.css, app.js, uebersicht.js, betrieb.js

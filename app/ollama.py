@@ -379,3 +379,28 @@ def eigene_adresse():
             return s.getsockname()[0]
     except OSError:
         return ""
+
+
+def strom(methode, pfad, payload=None, timeout=None):
+    """Liest eine NDJSON-Antwort Zeile fuer Zeile mit.
+
+    Ollama meldet den Fortschritt von /api/pull als Strom einzelner
+    JSON-Zeilen. Die normale _request() wartet auf das Ende der Antwort und
+    taugt dafuer nicht.
+    """
+    url = f"{config.OLLAMA_URL}{pfad}"
+    daten = json.dumps(payload).encode("utf-8") if payload is not None else None
+    kopf = {"Accept": "application/x-ndjson"}
+    if daten is not None:
+        kopf["Content-Type"] = "application/json"
+    anfrage = urllib.request.Request(url, data=daten, headers=kopf, method=methode)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(anfrage, timeout=timeout or config.CHAT_TIMEOUT) as antwort:
+        for rohzeile in antwort:
+            zeile = rohzeile.decode("utf-8", "replace").strip()
+            if not zeile:
+                continue
+            try:
+                yield json.loads(zeile)
+            except json.JSONDecodeError:
+                continue
