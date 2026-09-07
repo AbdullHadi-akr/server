@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import (auth, config, dockerctl, gpu, modelle, nutzung, ollama,
-               pruefung, verlauf, vram)
+               proxy, pruefung, verlauf, vram)
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -154,6 +154,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": True, **modelle.fortschritt()})
         elif pfad == "/api/modelle/details":
             self._json(modelle.details((parameter.get("name") or [""])[0]))
+        elif pfad == "/api/aktiv":
+            self._aktiv()
         elif pfad == "/api/verlauf":
             self._json(verlauf.lesen((parameter.get("zeitraum") or ["24h"])[0]))
         elif pfad == "/api/gpu":
@@ -255,7 +257,11 @@ class Handler(BaseHTTPRequestHandler):
         # also das Vielfache der Anzahl geladener Modelle.
         geladen = ollama.geladene_modelle()
         anzahl_modelle = len(geladen.get("modelle", [])) if geladen.get("ok") else 0
-        slots_gesamt = slots * max(1, anzahl_modelle)
+        # Ist /api/ps gerade nicht erreichbar, verraet der Proxy trotzdem, fuer
+        # wie viele verschiedene Modelle Anfragen laufen - die untere Schranke
+        # der geladenen Modelle.
+        im_proxy = len(proxy.zustand(slots)["modelle"])
+        slots_gesamt = slots * max(1, anzahl_modelle, im_proxy)
 
         ergebnis = nutzung.auswerten(logtext, slots_gesamt)
         ergebnis["slotsJeModell"] = slots
@@ -264,6 +270,16 @@ class Handler(BaseHTTPRequestHandler):
         ergebnis["live"]["slotsJeModell"] = slots
         ergebnis["live"]["modelleGeladen"] = anzahl_modelle
         self._json(ergebnis)
+
+    def _aktiv(self):
+        """Laufende Anfragen je Modell - nur im Proxy-Modus belastbar."""
+        parallel = config.STANDARD_PARALLEL
+        try:
+            umgebung = dockerctl.status(mit_statistik=False)["einstellungen"]
+            parallel = int(umgebung.get("OLLAMA_NUM_PARALLEL") or parallel)
+        except (dockerctl.DockerFehler, KeyError, ValueError, TypeError):
+            pass
+        self._json(proxy.zustand(parallel))
 
     def _live_slots(self, zustand, slots):
         """Zaehlt die gerade offenen Verbindungen zu Ollama.
@@ -278,12 +294,42 @@ class Handler(BaseHTTPRequestHandler):
                 port = int(host.rsplit(":", 1)[1])
             except ValueError:
                 pass
+        parallel = 0
+        try:
+            parallel = int(zustand.get("einstellungen", {})
+                           .get("OLLAMA_NUM_PARALLEL") or config.STANDARD_PARALLEL)
+        except (ValueError, TypeError):
+            parallel = config.STANDARD_PARALLEL
+
+        # Laeuft der Verkehr durch den Proxy, sind dessen Zahlen exakt und
+        # zudem je Modell aufgeschluesselt - die Verbindungszaehlung ist dann
+        # nur noch Rueckfallebene.
+        proxy_daten = proxy.zustand(parallel)
+        if proxy_daten["aktiv"] and proxy_daten["gesamtAktiv"]:
+            return {
+                "ok": True,
+                "quelle": "proxy",
+                "aktiv": proxy_daten["gesamtAktiv"],
+                "slots": slots,
+                "frei": max(0, slots - proxy_daten["gesamtAktiv"]),
+                "ueberbucht": proxy_daten["gesamtAktiv"] > slots,
+                "auslastung": (round(proxy_daten["gesamtAktiv"] / slots * 100, 1)
+                               if slots else 0.0),
+                "eigene": 0,
+                "port": config.PROXY_PORT,
+                "jeModell": proxy_daten["modelle"],
+            }
+
         try:
             ausgabe = dockerctl.ausfuehren(
                 ["cat", "/proc/net/tcp", "/proc/net/tcp6"])
         except dockerctl.DockerFehler as fehler:
             return {"ok": False, "fehler": str(fehler)}
-        return nutzung.live(ausgabe, port, slots, ollama.eigene_adresse())
+        ergebnis = nutzung.live(ausgabe, port, slots, ollama.eigene_adresse())
+        ergebnis["quelle"] = "verbindungen"
+        if proxy_daten["aktiv"]:
+            ergebnis["jeModell"] = proxy_daten["modelle"]
+        return ergebnis
 
     def _pruefung(self):
         """Sammelt Hinweise auf unstimmige Einstellungen."""
@@ -430,8 +476,15 @@ def _messwerte(letzte_anfrage):
 
     geladen = ollama.geladene_modelle()
     anzahl = len(geladen.get("modelle", [])) if geladen.get("ok") else 0
+
+    # Im Proxy-Modus sind die laufenden Anfragen exakt bekannt - und je Modell.
+    proxy_daten = proxy.zustand(parallel)
+    werte["jeModell"] = proxy_daten["modelle"]
+    if proxy_daten["aktiv"] and proxy_daten["gesamtAktiv"]:
+        werte["aktiv"] = proxy_daten["gesamtAktiv"]
+
     werte["modelle"] = anzahl
-    werte["slots"] = parallel * max(1, anzahl)
+    werte["slots"] = parallel * max(1, anzahl, len(proxy_daten["modelle"]))
 
     gpu_daten = gpu.werte()
     if gpu_daten.get("gemessen"):
@@ -452,7 +505,9 @@ def _messwerte(letzte_anfrage):
             ausgabe = dockerctl.ausfuehren(["cat", "/proc/net/tcp", "/proc/net/tcp6"])
             live = nutzung.live(ausgabe, port, werte["slots"],
                                 ollama.eigene_adresse())
-            werte["aktiv"] = live["aktiv"]
+            # Nur setzen, wenn der Proxy keine Zahl geliefert hat - seine ist
+            # exakt, die Verbindungszaehlung nur eine Naeherung.
+            werte.setdefault("aktiv", live["aktiv"])
         except (dockerctl.DockerFehler, ValueError):
             pass
         try:
@@ -484,6 +539,9 @@ def main():
     else:
         print("Noch kein Passwort gesetzt - wird beim ersten Aufruf von "
               "/betrieb abgefragt", flush=True)
+    if proxy.starten():
+        print(f"Proxy laeuft auf http://{config.HOST}:{config.PROXY_PORT} "
+              f"-> {config.OLLAMA_URL}", flush=True)
     if verlauf.starten(_messwerte):
         print(f"Verlauf: Aufzeichnung alle {config.VERLAUF_TAKT} s, "
               f"Aufbewahrung {config.VERLAUF_TAGE} Tage", flush=True)

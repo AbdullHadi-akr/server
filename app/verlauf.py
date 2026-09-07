@@ -35,6 +35,17 @@ CREATE TABLE IF NOT EXISTS messungen (
 """
 
 
+MODELL_TABELLE = """
+CREATE TABLE IF NOT EXISTS modell_messungen (
+    zeit    INTEGER,
+    modell  TEXT,
+    aktiv   INTEGER,
+    wartend INTEGER,
+    PRIMARY KEY (zeit, modell)
+)
+"""
+
+
 def _datei():
     return os.path.join(config.DATEN_DIR, "verlauf.sqlite")
 
@@ -48,6 +59,7 @@ def verbindung():
         # WAL: Der Schreib-Thread blockiert die lesenden Anfragen nicht.
         _verbindung.execute("PRAGMA journal_mode=WAL")
         _verbindung.execute(TABELLE)
+        _verbindung.execute(MODELL_TABELLE)
         _verbindung.commit()
     return _verbindung
 
@@ -63,6 +75,13 @@ def schreiben(messpunkt):
              messpunkt["modelle"], messpunkt["vramBelegt"], messpunkt["vramGesamt"],
              messpunkt["gpuLast"], messpunkt["anfragen"], messpunkt["medianS"],
              messpunkt["fehler"]))
+        # Aufschluesselung je Modell gibt es nur im Proxy-Modus.
+        for eintrag in messpunkt.get("jeModell") or []:
+            db.execute(
+                "INSERT OR REPLACE INTO modell_messungen (zeit, modell, aktiv, "
+                "wartend) VALUES (?,?,?,?)",
+                (int(messpunkt["zeit"]), eintrag["modell"], eintrag["aktiv"],
+                 eintrag.get("wartend", 0)))
         db.commit()
 
 
@@ -72,6 +91,7 @@ def aufraeumen():
     with _schloss:
         db = verbindung()
         db.execute("DELETE FROM messungen WHERE zeit < ?", (grenze,))
+        db.execute("DELETE FROM modell_messungen WHERE zeit < ?", (grenze,))
         db.commit()
 
 
@@ -130,7 +150,20 @@ def lesen(zeitraum="24h"):
         "takt": config.VERLAUF_TAKT,
         "aufbewahrungTage": config.VERLAUF_TAGE,
         "zusammenfassung": _zusammenfassung(punkte),
+        "jeModell": _je_modell(ab),
     }
+
+
+def _je_modell(ab):
+    """Spitzenbelegung je Modell im Zeitraum - leer ohne Proxy-Modus."""
+    with _schloss:
+        zeilen = verbindung().execute(
+            "SELECT modell, MAX(aktiv), MAX(wartend), COUNT(*) "
+            "FROM modell_messungen WHERE zeit >= ? GROUP BY modell "
+            "ORDER BY modell", (ab,)).fetchall()
+    return [{"modell": z[0], "spitze": int(z[1] or 0),
+             "wartendSpitze": int(z[2] or 0), "messpunkte": int(z[3] or 0)}
+            for z in zeilen]
 
 
 def _zusammenfassung(punkte):
@@ -169,6 +202,7 @@ def _messpunkt(sammler):
         "anfragen": daten.get("anfragen", 0),
         "medianS": daten.get("medianS", 0.0),
         "fehler": daten.get("fehler", 0),
+        "jeModell": daten.get("jeModell") or [],
     }
 
 

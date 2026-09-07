@@ -62,6 +62,8 @@ Alles über Umgebungsvariablen:
 | `VERLAUF_AKTIV`     | `true`                              | Aufzeichnung des Verlaufs. |
 | `VERLAUF_TAKT`      | `60`                                | Sekunden zwischen zwei Messpunkten. |
 | `VERLAUF_TAGE`      | `30`                                | Aufbewahrung der Messpunkte. |
+| `PROXY_AKTIV`       | `true`                              | Proxy vor Ollama. |
+| `PROXY_PORT`        | `5022`                              | Port des Proxys. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
 | `GPU_VRAM_GIB`      | `80`                                | Rückfallwert, falls `nvidia-smi` nicht erreichbar ist. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
@@ -229,6 +231,31 @@ Maximaldauer sowie Fehler.
 Ist die Live-Messung nicht möglich (kein Docker-Socket, `exec` untersagt), sagt
 die Seite das und der Rückblick funktioniert unabhängig davon weiter.
 
+## Proxy-Modus – exakte Slots je Modell
+
+Weder die Ollama-API noch das Zugriffslog verraten, welches Modell eine gerade
+laufende Anfrage belegt. Wer den Verkehr durch das Portal leitet, bekommt genau
+das. Der Proxy lauscht auf einem **eigenen Port** (Standard 5022) – Ollamas
+`/api/*` würde sich sonst mit den gleichnamigen Endpunkten des Portals
+überschneiden.
+
+Er reicht alle Pfade und Methoden an Ollama weiter, liest den Anfragerumpf (dort
+steht das Modell) und gibt die Antwort **ungepuffert** zurück, damit der Chat in
+VS Code weiter Wort für Wort erscheint. Daraus entsteht je Modell: laufende
+Anfragen, davon rechnend (bis `OLLAMA_NUM_PARALLEL`) und wartend. Die Übersicht
+zeigt das auf den Modellkarten, der Verlauf schreibt es mit.
+
+**Einschalten:** Der Proxy läuft standardmäßig mit, wird aber erst genutzt, wenn
+`PUBLIC_OLLAMA_URL` auf seinen Port zeigt. Solange das nicht der Fall ist, weist
+die Plausibilitätsprüfung darauf hin. Der Wechsel bedeutet, dass **alle Nutzer
+die `url` in ihrer `chatLanguageModels.json` einmalig ändern** müssen.
+
+**Was das kostet:** Das Portal wird damit zum kritischen Pfad – ist es aus,
+funktioniert kein Chat mehr. `PROXY_AKTIV=false` ist der Notausstieg; dann tragen
+die Nutzer wieder Port 5020 ein und die Live-Messung fällt auf die
+Verbindungszählung zurück. Sinnvoll ist eine Übergangszeit, in der beide Wege
+funktionieren – der direkte Port bleibt ja erreichbar.
+
 ## Verlaufsseite (`/verlauf`)
 
 Ein Hintergrund-Thread schreibt alle `VERLAUF_TAKT` Sekunden einen Messpunkt in
@@ -337,6 +364,7 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 | `GET /api/pruefung`      | Hinweise auf unstimmige Einstellungen. |
 | `GET /verlauf`           | Verlaufsseite. |
 | `GET /api/verlauf`       | Messreihen (`?zeitraum=1h\|24h\|7t\|30t`). |
+| `GET /api/aktiv`         | Laufende Anfragen je Modell (Proxy-Modus). |
 | `GET /api/modelle/liste` | Installierte Modelle und Plattenbelegung. |
 | `GET /api/modelle/fortschritt` | Stand eines laufenden `pull`. |
 | `POST /api/modelle/laden` \| `/loeschen` | Modell nachladen bzw. entfernen. |
@@ -374,6 +402,7 @@ app/
   pruefung.py   Plausibilitätsprüfung von Konfiguration und Messwerten
   modelle.py    Modelle auflisten, nachladen (Strom-Fortschritt), löschen
   verlauf.py    Aufzeichnung der Messwerte in SQLite, Verdichtung, Aufräumen
+  proxy.py      Vorgeschalteter Proxy: reicht durch und zählt je Modell mit
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
   static/       index.html, uebersicht.html, verlauf.html, betrieb.html,
                 style.css und je Seite eine .js-Datei

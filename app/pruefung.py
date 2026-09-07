@@ -118,6 +118,23 @@ def _umgebung_pruefen(umgebung):
     return hinweise
 
 
+def _proxy_pruefen():
+    """Weist darauf hin, wenn der Proxy laeuft, aber niemand ihn nutzt."""
+    if not config.PROXY_AKTIV:
+        return []
+    if f":{config.PROXY_PORT}" in config.PUBLIC_OLLAMA_URL:
+        return []
+    return [_eintrag(
+        HINWEIS,
+        "Proxy-Modus laeuft, wird aber nicht genutzt",
+        f"Der Portal-Proxy lauscht auf Port {config.PROXY_PORT}, die Nutzer "
+        f"tragen aber {config.PUBLIC_OLLAMA_URL} ein und sprechen Ollama damit "
+        "direkt an. Die Slot-Zahlen je Modell bleiben deshalb leer.",
+        f"PUBLIC_OLLAMA_URL auf Port {config.PROXY_PORT} umstellen - dann "
+        "muessen alle Nutzer die url in ihrer chatLanguageModels.json einmalig "
+        "aendern. Wird der Proxy nicht gebraucht: PROXY_AKTIV=false.")]
+
+
 def _adresse_pruefen():
     """Prueft, ob der den Nutzern angezeigte Name aufloesbar ist."""
     teile = urllib.parse.urlsplit(config.PUBLIC_OLLAMA_URL)
@@ -153,6 +170,7 @@ def hinweise(zustand, geladen, gpu_daten):
                                    gpu_daten or {})
     gesammelt += _umgebung_pruefen(umgebung)
     gesammelt += _adresse_pruefen()
+    gesammelt += _proxy_pruefen()
 
     return {
         "ok": True,

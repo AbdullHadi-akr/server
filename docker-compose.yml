@@ -6,6 +6,9 @@ services:
     restart: unless-stopped
     ports:
       - "5021:5021"
+      # Proxy vor Ollama. Zeigt PUBLIC_OLLAMA_URL auf diesen Port, laufen die
+      # Anfragen durch das Portal und lassen sich je Modell zaehlen.
+      - "5022:5022"
     environment:
       # Adresse, unter der DAS PORTAL Ollama erreicht: Funktionspruefung,
       # Modelltests, Status und Auslastung laufen darueber.
@@ -24,6 +27,16 @@ services:
       # PORTAL_PASSWORT: "bitte-aendern"
       # Gueltigkeit einer Anmeldung in Sekunden (Standard 8 Stunden).
       SITZUNGSDAUER: "28800"
+
+      # Proxy-Modus. Auf "false" setzen, wenn das Portal nicht im Weg des
+      # Chat-Verkehrs stehen soll.
+      PROXY_AKTIV: "true"
+      PROXY_PORT: "5022"
+
+      # Verlaufsaufzeichnung.
+      VERLAUF_AKTIV: "true"
+      VERLAUF_TAKT: "60"
+      VERLAUF_TAGE: "30"
 
       # GPU-Ausstattung fuer den VRAM-Rechner.
       GPU_NAME: "NVIDIA A100"

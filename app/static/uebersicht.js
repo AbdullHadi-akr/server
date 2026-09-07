@@ -199,11 +199,21 @@ function modelle(daten, auslastung) {
       ["Bereitgehalten bis", m.laeuftBis ? new Date(m.laeuftBis).toLocaleString("de-DE") : "–"],
     ]));
 
-    if (live) {
+    // Im Proxy-Modus ist die Belegung je Modell bekannt, sonst nur insgesamt.
+    const jeModell = (live && live.jeModell || []).find((e) => e.modell === m.name);
+    if (jeModell) {
+      karte.appendChild(el("p", "hinweis",
+        "Jetzt aktiv: " + jeModell.rechnend + " von " + jeModell.slots + " Slots" +
+        (jeModell.wartend ? " · " + jeModell.wartend + " Anfrage(n) in der Warteschlange" : "")));
+      karte.appendChild(slotReihe(jeModell.aktiv, jeModell.slots));
+    } else if (live && live.quelle === "proxy") {
+      karte.appendChild(el("p", "hinweis",
+        "Zurzeit keine laufende Anfrage für dieses Modell."));
+    } else if (live) {
       karte.appendChild(el("p", "hinweis",
         "Dieses Modell stellt " + parallel + " der insgesamt " + live.slots +
-        " Slots. Wie viele davon gerade belegt sind, lässt sich nicht je " +
-        "Modell trennen – siehe Slot-Auslastung unten."));
+        " Slots. Ohne Proxy-Modus lässt sich die Belegung nicht je Modell " +
+        "trennen – siehe Slot-Auslastung unten."));
     }
     ziel.appendChild(karte);
   });
@@ -269,13 +279,15 @@ function liveKarte(live, slots) {
       (live.modelleGeladen ? "" :
         " (kein Modell geladen – gerechnet wird mit einem)")));
   }
-  karte.appendChild(el("p", "hinweis",
-    "Gezählt werden die gerade offenen Verbindungen zu Ollama (Port " +
-    live.port + "). VS Code hält je laufendem Chat eine Verbindung; nach der " +
-    "Antwort kann sie noch kurz bestehen bleiben. Die " + live.eigene +
-    " Abfrage(n) dieser Seite sind herausgerechnet. Die Verbindung verrät " +
-    "nicht, welches Modell sie nutzt – die Zahl gilt daher für alle " +
-    "geladenen Modelle zusammen."));
+  karte.appendChild(el("p", "hinweis", live.quelle === "proxy"
+    ? "Exakt gezählt: Die Anfragen laufen durch den Portal-Proxy auf Port " +
+      live.port + ", der jede laufende Anfrage samt Modell kennt."
+    : "Gezählt werden die gerade offenen Verbindungen zu Ollama (Port " +
+      live.port + "). VS Code hält je laufendem Chat eine Verbindung; nach der " +
+      "Antwort kann sie noch kurz bestehen bleiben. Die " + live.eigene +
+      " Abfrage(n) dieser Seite sind herausgerechnet. Die Verbindung verrät " +
+      "nicht, welches Modell sie nutzt – die Zahl gilt daher für alle " +
+      "geladenen Modelle zusammen."));
   ziel.appendChild(karte);
 }
 
