@@ -123,7 +123,8 @@ class Handler(BaseHTTPRequestHandler):
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
             self._json({"status": "ok", "version": config.VERSION,
-                        "seiten": ["/", "/betrieb"]})
+                        "seiten": ["/", "/uebersicht", "/verlauf", "/betrieb"],
+                        "proxy": config.PROXY_PORT if config.PROXY_AKTIV else None})
         elif pfad == "/api/modelle":
             self._json({
                 "ollamaUrl": config.OLLAMA_URL,
