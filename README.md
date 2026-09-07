@@ -39,17 +39,33 @@ Läuft Ollama auf dem Docker-Host selbst, ist
 
 Der Knopf **„Server prüfen“** testet der Reihe nach:
 
-1. `GET /api/version` – ist Ollama überhaupt erreichbar?
-2. `GET /api/tags` – Liste der installierten Modelle.
-3. Sind `qwen3:30b-a3b` und `qwen3-coder:30b` installiert?
-4. `GET /v1/models` – steht der OpenAI-kompatible Endpunkt bereit? Genau den
+1. **Namensauflösung** – lässt sich der Hostname aus `OLLAMA_URL` im Container
+   auflösen? (Der Container nutzt nicht zwingend denselben DNS wie dein PC.)
+2. **TCP-Verbindung** – nimmt Port 5020 Verbindungen an? Trennt „Connection
+   refused“ (Ollama lauscht nur auf 127.0.0.1) von „Timeout“ (Firewall).
+3. `GET /api/version` – antwortet dort wirklich Ollama?
+4. `GET /api/tags` – Liste der installierten Modelle.
+5. Sind `qwen3:30b-a3b` und `qwen3-coder:30b` installiert?
+6. `GET /v1/models` – steht der OpenAI-kompatible Endpunkt bereit? Genau den
    spricht VS Code über `apiType: "chat-completions"` an.
+
+Jeder fehlgeschlagene Schritt nennt die konkrete Ursache samt Behebung; auf
+einen Fehler folgende Schritte werden als „übersprungen“ markiert, statt
+irreführende Folgefehler zu melden.
 
 Der Knopf **„Modelle live testen“** schickt zusätzlich pro Modell eine echte
 Anfrage an `POST /v1/chat/completions`, misst die Antwortzeit (und weist auf einen
 Kaltstart hin) und prüft mit einem Beispiel-Werkzeug, ob **Tool Calling**
 tatsächlich funktioniert – schlägt das fehl, sollte in der
 `chatLanguageModels.json` `"toolCalling": false` gesetzt werden.
+
+qwen3 ist ein Reasoning-Modell und schreibt seinen Gedankengang in
+`<think>…</think>` vor die Antwort. Der Test unterdrückt das per `/no_think`,
+entfernt verbliebene Denkblöcke aus der Antwort und gibt genug Token frei, damit
+das Modell nicht mitten im Gedankengang abgeschnitten wird. Bleibt trotzdem kein
+sichtbarer Text übrig, meldet das Portal eine **Warnung** statt eines Fehlers –
+der Endpunkt funktioniert dann trotzdem. Dasselbe gilt für fehlendes Tool
+Calling: eine Einschränkung, kein Ausfall.
 
 ## API
 

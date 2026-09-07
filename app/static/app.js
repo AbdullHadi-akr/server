@@ -15,9 +15,11 @@ function el(tag, klasse, text) {
   return knoten;
 }
 
-function zeile({ ok, titel, detail, tipp, ms, laeuft }) {
-  const wurzel = el("div", "zeile " + (laeuft ? "laeuft" : ok ? "ok" : "fehler"));
-  wurzel.appendChild(el("div", "symbol", laeuft ? "⏳" : ok ? "✅" : "❌"));
+function zeile({ ok, titel, detail, tipp, ms, laeuft, warnung }) {
+  const zustand = laeuft ? "laeuft" : warnung ? "warnung" : ok ? "ok" : "fehler";
+  const symbole = { laeuft: "⏳", warnung: "⚠️", ok: "✅", fehler: "❌" };
+  const wurzel = el("div", "zeile " + zustand);
+  wurzel.appendChild(el("div", "symbol", symbole[zustand]));
   const inhalt = el("div", "inhalt");
   inhalt.appendChild(el("div", "titel", titel));
   if (detail) inhalt.appendChild(el("div", "detail", detail));
@@ -131,22 +133,30 @@ async function modelltest() {
     try {
       const ergebnis = await holen("/api/test?model=" + encodeURIComponent(modell.id));
       const teile = [];
+      let warnung = false;
       if (ergebnis.ok) {
         teile.push('Antwort: "' + ergebnis.antwort + '"');
+        if (ergebnis.hinweis) { teile.push(ergebnis.hinweis); warnung = true; }
         if (ergebnis.kalt) teile.push("(Kaltstart – Folgeanfragen sind deutlich schneller)");
         if (ergebnis.tools) {
-          teile.push(ergebnis.tools.ok
-            ? "Tool Calling: " + ergebnis.tools.info
-            : "Tool Calling fehlgeschlagen: " + ergebnis.tools.fehler);
+          if (ergebnis.tools.ok) {
+            teile.push("Tool Calling: " + ergebnis.tools.info);
+          } else {
+            // Fehlendes Tool Calling ist kein Ausfall des Endpunkts,
+            // sondern nur eine Einschränkung – daher nur eine Warnung.
+            teile.push("Tool Calling: " + ergebnis.tools.fehler);
+            warnung = true;
+          }
         }
       } else {
         teile.push(ergebnis.fehler);
       }
       platzhalter.replaceWith(zeile({
-        ok: ergebnis.ok && (!ergebnis.tools || ergebnis.tools.ok),
+        ok: ergebnis.ok,
+        warnung: ergebnis.ok && warnung,
         titel: modell.name + " – " + modell.id,
         detail: teile.join(" · "),
-        tipp: "Prüfen mit: ollama run " + modell.id,
+        tipp: "Auf dem Server prüfen mit: ollama run " + modell.id,
         ms: ergebnis.ms,
       }));
     } catch (fehler) {

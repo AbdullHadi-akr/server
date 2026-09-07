@@ -124,6 +124,7 @@ button.primaer { background: var(--akzent); border-color: var(--akzent); color: 
 }
 .zeile.ok { border-left-color: var(--gut); }
 .zeile.fehler { border-left-color: var(--schlecht); }
+.zeile.warnung { border-left-color: var(--warn); }
 .zeile.laeuft { border-left-color: var(--warn); }
 .zeile .symbol { font-size: 18px; line-height: 1.4; }
 .zeile .inhalt { flex: 1; min-width: 0; }
