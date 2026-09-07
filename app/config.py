@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "1.3 (Uebersicht und Passwortschutz)"
+VERSION = "1.4 (Live-Slotauslastung)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server).
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://AZEU-DEW-DEVGPU-02:5020").rstrip("/")

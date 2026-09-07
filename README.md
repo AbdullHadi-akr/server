@@ -179,21 +179,39 @@ wollen, ob der Dienst läuft und wie ausgelastet er ist. Aktualisiert sich alle
 - **Modelle und Slots** – je geladenem Modell der belegte VRAM, die Anzahl
   Slots mit ihrem Kontext, der Gesamtkontext und bis wann Ollama das Modell
   bereithält. Liegt ein Modell nur teilweise auf der GPU, wird das markiert.
-- **Auslastung** – für die letzten 15 und 60 Minuten: Anzahl Anfragen, höchste
-  gleichzeitige Slot-Belegung, mittlere Belegung, Median- und Maximaldauer
-  sowie fehlerhafte Anfragen.
+- **Slot-Auslastung** – live und im Rückblick, mit Knopf zum sofortigen
+  Neuladen und abschaltbarer Aktualisierung alle 10 Sekunden.
 
-Die Auslastung wird aus dem Zugriffslog des Containers gewonnen. Ollama
-protokolliert jede beantwortete Anfrage im GIN-Format mit Endzeitpunkt und
-Dauer; daraus lässt sich das Zeitfenster jeder Anfrage rekonstruieren und per
-Sweep-Line ermitteln, wie viele Slots gleichzeitig belegt waren.
+### Wie die Slot-Auslastung gemessen wird
 
-> **Zwei Grenzen des Verfahrens, die die Seite auch selbst nennt:** Eine Zeile
-> entsteht erst, wenn die Anfrage beantwortet ist – *gerade laufende* Anfragen
-> sind nicht enthalten, die Werte beschreiben also das zurückliegende Fenster
-> statt einer Momentaufnahme. Und das Zugriffslog schreibt das Modell nicht
-> mit, weshalb die Auslastungszahlen für den Ollama-Dienst insgesamt gelten
-> und nicht je Modell aufgeschlüsselt sind.
+Ollama bietet keine Schnittstelle für belegte Slots. Das Portal misst daher
+auf zwei voneinander unabhängigen Wegen:
+
+**Live – gerade aktive Sitzungen.** Das Portal liest über den Docker-Socket
+`/proc/net/tcp` *im Ollama-Container* und zählt die hergestellten Verbindungen
+auf dessen Port. Angezeigt wird das als Slot-Leiste („aktiv“ / „frei“); mehr
+Sitzungen als Slots werden als wartend markiert. Eigene Statusabfragen des
+Portals rechnet es anhand seiner eigenen Adresse heraus, `LISTEN`- und
+`TIME_WAIT`-Einträge zählen nicht mit.
+
+> VS Code hält je laufendem Chat eine Verbindung offen. Nach einer Antwort
+> kann sie durch Keep-Alive noch kurz bestehen bleiben – kurzzeitig kann die
+> Anzeige daher etwas höher liegen als die Zahl der wirklich rechnenden
+> Anfragen.
+
+**Rückblick – die letzten 15 und 60 Minuten.** Aus dem GIN-Zugriffslog des
+Containers (Endzeitpunkt und Dauer je Anfrage) rekonstruiert das Portal das
+Zeitfenster jeder Anfrage und ermittelt per Sweep-Line die höchste
+gleichzeitige Belegung, dazu Anzahl, mittlere Belegung, Median- und
+Maximaldauer sowie Fehler.
+
+> Eine Logzeile entsteht erst, wenn die Anfrage **beantwortet** ist. Laufende
+> Sitzungen stehen deshalb ausschließlich in der Live-Anzeige – genau deshalb
+> gibt es beide Messungen. Und da das Zugriffslog das Modell nicht mitschreibt,
+> gilt der Rückblick für den Ollama-Dienst insgesamt.
+
+Ist die Live-Messung nicht möglich (kein Docker-Socket, `exec` untersagt), sagt
+die Seite das und der Rückblick funktioniert unabhängig davon weiter.
 
 ## Passwortschutz der Einstellungsseite
 

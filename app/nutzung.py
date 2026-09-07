@@ -130,3 +130,64 @@ def auswerten(logtext, slots, fenster_minuten=(15, 60)):
         "letzteAnfrage": datetime.fromtimestamp(jetzt).strftime("%Y-%m-%d %H:%M:%S"),
         "fenster": fenster,
     }
+
+
+# --------------------------------------------------- Live: offene Sitzungen
+# Zustaende aus /proc/net/tcp, die uns interessieren.
+TCP_HERGESTELLT = "01"
+
+
+def _ipv4(hexwert):
+    """Wandelt die Little-Endian-Hex-Adresse aus /proc/net/tcp in Punktschreibweise."""
+    try:
+        gruppen = [hexwert[i:i + 2] for i in range(0, 8, 2)]
+        return ".".join(str(int(teil, 16)) for teil in reversed(gruppen))
+    except (ValueError, IndexError):
+        return ""
+
+
+def _verbindungen_zaehlen(proc_ausgabe, port, eigene_adresse=""):
+    """Zaehlt hergestellte Verbindungen zum Ollama-Port.
+
+    Verbindungen des Portals selbst werden abgezogen: die entstehen durch die
+    Statusabfragen dieser Seite und sind keine Nutzersitzungen.
+    """
+    fremde = 0
+    eigene = 0
+    for zeile in proc_ausgabe.splitlines():
+        felder = zeile.split()
+        # Aufbau: sl local_address rem_address st ...
+        if len(felder) < 4 or ":" not in felder[1]:
+            continue
+        if felder[3] != TCP_HERGESTELLT:
+            continue
+        try:
+            lokaler_port = int(felder[1].rsplit(":", 1)[1], 16)
+        except ValueError:
+            continue
+        if lokaler_port != port:
+            continue
+        gegenstelle = felder[2].rsplit(":", 1)[0]
+        # Nur IPv4 laesst sich hier zuverlaessig aufloesen; IPv6-Eintraege
+        # zaehlen als fremd, weil das Portal ueber IPv4 spricht.
+        if len(gegenstelle) == 8 and eigene_adresse and _ipv4(gegenstelle) == eigene_adresse:
+            eigene += 1
+        else:
+            fremde += 1
+    return {"aktiv": fremde, "eigene": eigene}
+
+
+def live(proc_ausgabe, port, slots, eigene_adresse=""):
+    """Momentaufnahme der belegten Slots aus den offenen Verbindungen."""
+    gezaehlt = _verbindungen_zaehlen(proc_ausgabe, port, eigene_adresse)
+    aktiv = gezaehlt["aktiv"]
+    return {
+        "ok": True,
+        "aktiv": aktiv,
+        "slots": slots,
+        "frei": max(0, slots - aktiv),
+        "ueberbucht": aktiv > slots,
+        "auslastung": round(aktiv / slots * 100, 1) if slots else 0.0,
+        "eigene": gezaehlt["eigene"],
+        "port": port,
+    }

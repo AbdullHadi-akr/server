@@ -363,3 +363,19 @@ def geladene_modelle():
         })
     return {"ok": True, "modelle": modelle,
             "summeGib": round(sum(m["vramGib"] for m in modelle), 2)}
+
+
+def eigene_adresse():
+    """IP-Adresse, mit der das Portal Ollama gegenuebertritt.
+
+    Damit lassen sich die eigenen Statusabfragen aus der Zaehlung der
+    offenen Verbindungen herausrechnen.
+    """
+    teile = urllib.parse.urlsplit(config.OLLAMA_URL)
+    host = teile.hostname or ""
+    port = teile.port or (443 if teile.scheme == "https" else 80)
+    try:
+        with socket.create_connection((host, port), timeout=config.PROBE_TIMEOUT) as s:
+            return s.getsockname()[0]
+    except OSError:
+        return ""

@@ -352,3 +352,36 @@ def einstellungen_uebernehmen(aenderungen):
         "compose": bool((daten.get("Config", {}).get("Labels") or {})
                         .get("com.docker.compose.project")),
     }
+
+
+# ------------------------------------------------------------------- Exec
+def ausfuehren(befehl, timeout=15):
+    """Fuehrt einen Befehl im Ollama-Container aus und liefert die Ausgabe.
+
+    Wird gebraucht, um im Container /proc/net/tcp zu lesen - daraus ergibt
+    sich, wie viele Verbindungen gerade offen sind.
+    """
+    erzeugt = _api("POST", f"/containers/{config.CONTAINER_NAME}/exec", {
+        "AttachStdout": True,
+        "AttachStderr": True,
+        "Tty": False,
+        "Cmd": befehl,
+    }, timeout=timeout)
+    roh = _api("POST", f"/exec/{erzeugt['Id']}/start",
+               {"Detach": False, "Tty": False}, timeout=timeout, roh=True)
+    return _entwirre_logs(roh)
+
+
+def ollama_port():
+    """Port, auf dem Ollama INNERHALB des Containers lauscht."""
+    try:
+        daten = _api("GET", f"/containers/{config.CONTAINER_NAME}/json")
+        host = _env_dict(daten.get("Config", {}).get("Env")).get("OLLAMA_HOST", "")
+    except DockerFehler:
+        return 11434
+    if ":" in host:
+        try:
+            return int(host.rsplit(":", 1)[1])
+        except ValueError:
+            pass
+    return 11434

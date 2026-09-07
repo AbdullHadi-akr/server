@@ -214,7 +214,7 @@ class Handler(BaseHTTPRequestHandler):
         })
 
     def _nutzung(self):
-        """Slot-Auslastung aus den Zugriffslogs des Ollama-Containers."""
+        """Slot-Auslastung: Momentaufnahme plus Rueckblick aus den Logs."""
         try:
             zustand = dockerctl.status(mit_statistik=False)
             slots = int(zustand["einstellungen"].get("OLLAMA_NUM_PARALLEL")
@@ -224,9 +224,33 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": False, "fehler": str(fehler)}, 200)
             return
         except (KeyError, ValueError):
+            zustand = {"einstellungen": {}}
             slots = config.STANDARD_PARALLEL
             logtext = ""
-        self._json(nutzung.auswerten(logtext, slots))
+
+        ergebnis = nutzung.auswerten(logtext, slots)
+        ergebnis["live"] = self._live_slots(zustand, slots)
+        self._json(ergebnis)
+
+    def _live_slots(self, zustand, slots):
+        """Zaehlt die gerade offenen Verbindungen zu Ollama.
+
+        Das Zugriffslog kennt nur abgeschlossene Anfragen. Fuer den Blick auf
+        das Jetzt liest das Portal daher /proc/net/tcp im Ollama-Container.
+        """
+        host = zustand.get("einstellungen", {}).get("OLLAMA_HOST", "")
+        port = 11434
+        if ":" in host:
+            try:
+                port = int(host.rsplit(":", 1)[1])
+            except ValueError:
+                pass
+        try:
+            ausgabe = dockerctl.ausfuehren(
+                ["cat", "/proc/net/tcp", "/proc/net/tcp6"])
+        except dockerctl.DockerFehler as fehler:
+            return {"ok": False, "fehler": str(fehler)}
+        return nutzung.live(ausgabe, port, slots, ollama.eigene_adresse())
 
     # -- Schreibende Routen ----------------------------------------------
     def do_POST(self):

@@ -117,8 +117,11 @@ function modelle(daten, auslastung) {
     return;
   }
 
-  const spitze = auslastung && auslastung.fenster && auslastung.fenster.length
-    ? auslastung.fenster[0].spitze : null;
+  const nutzungsdaten = auslastung;
+  const spitze = nutzungsdaten && nutzungsdaten.fenster && nutzungsdaten.fenster.length
+    ? nutzungsdaten.fenster[0].spitze : null;
+  const live = nutzungsdaten && nutzungsdaten.live && nutzungsdaten.live.ok
+    ? nutzungsdaten.live : null;
 
   geladen.modelle.forEach((m) => {
     const karte = el("div", "karte");
@@ -138,13 +141,16 @@ function modelle(daten, auslastung) {
       ["Bereitgehalten bis", m.laeuftBis ? new Date(m.laeuftBis).toLocaleString("de-DE") : "–"],
     ]));
 
-    if (spitze !== null) {
-      const anteil = parallel ? (spitze / parallel) * 100 : 0;
+    if (live) {
       karte.appendChild(el("p", "hinweis",
-        "Höchste gleichzeitige Belegung der letzten " +
-        auslastung.fenster[0].minuten + " Minuten: " + spitze + " von " +
+        "Jetzt aktiv: " + live.aktiv + " von " + parallel + " Slots"));
+      karte.appendChild(slotReihe(live.aktiv, parallel));
+    }
+    if (spitze !== null) {
+      karte.appendChild(el("p", "hinweis",
+        "Höchste gemessene Belegung der letzten " +
+        nutzungsdaten.fenster[0].minuten + " Minuten: " + spitze + " von " +
         parallel + " Slots"));
-      karte.appendChild(balken(anteil, anteil >= 100));
     }
     ziel.appendChild(karte);
   });
@@ -158,17 +164,71 @@ function modelle(daten, auslastung) {
 }
 
 // --- Auslastung --------------------------------------------------------
+function slotReihe(aktiv, slots) {
+  const reihe = el("div", "slots");
+  const felder = Math.max(slots, aktiv);
+  for (let i = 0; i < felder; i += 1) {
+    const belegt = i < aktiv;
+    const ueberzaehlig = i >= slots;
+    reihe.appendChild(el(
+      "div",
+      "slot" + (belegt ? (ueberzaehlig ? " ueberzaehlig" : " belegt") : ""),
+      belegt ? (ueberzaehlig ? "wartet" : "aktiv") : "frei"));
+  }
+  return reihe;
+}
+
+function liveKarte(live, slots) {
+  const ziel = document.getElementById("live-karte");
+  ziel.textContent = "";
+
+  if (!live) {
+    ziel.appendChild(el("p", "detail", "Keine Live-Messung verfügbar."));
+    return;
+  }
+  if (!live.ok) {
+    ziel.appendChild(el("p", "detail", "Live-Messung nicht möglich: " + live.fehler));
+    ziel.appendChild(el("p", "hinweis",
+      "Dafür liest das Portal /proc/net/tcp im Ollama-Container. Das braucht " +
+      "Zugriff auf den Docker-Socket und einen Container, in dem 'cat' " +
+      "vorhanden ist. Der Rückblick unten funktioniert unabhängig davon."));
+    return;
+  }
+
+  const karte = el("div", "karte");
+  const kopf = el("div", "vram-kopf");
+  kopf.appendChild(el("div", "grosszahl" + (live.ueberbucht ? " warn" : ""),
+    live.aktiv + " von " + live.slots));
+  kopf.appendChild(el("div", "detail",
+    live.ueberbucht
+      ? "mehr offene Sitzungen als Slots – Anfragen warten in der Warteschlange"
+      : "aktive Sitzungen · " + live.frei + " Slots frei"));
+  karte.appendChild(kopf);
+  karte.appendChild(slotReihe(live.aktiv, live.slots));
+  karte.appendChild(el("p", "hinweis",
+    "Gezählt werden die gerade offenen Verbindungen zu Ollama (Port " +
+    live.port + "). VS Code hält je laufendem Chat eine Verbindung; nach der " +
+    "Antwort kann sie noch kurz bestehen bleiben. Die " + live.eigene +
+    " Abfrage(n) dieser Seite sind herausgerechnet."));
+  ziel.appendChild(karte);
+}
+
 async function auslastung() {
   const ziel = document.getElementById("nutzung-karte");
   const hinweisfeld = document.getElementById("nutzung-hinweis");
+  const anzeige = document.getElementById("nutzung-status");
+  anzeige.textContent = "lädt …";
   const daten = await holen("/api/nutzung");
   ziel.textContent = "";
   hinweisfeld.textContent = "";
+  anzeige.textContent = "Stand " + new Date().toLocaleTimeString("de-DE");
 
   if (!daten.ok) {
+    liveKarte(null);
     ziel.appendChild(el("p", "detail", "Nicht abrufbar: " + daten.fehler));
     return null;
   }
+  liveKarte(daten.live, daten.slots);
   if (!daten.fenster.length) {
     ziel.appendChild(el("p", "hinweis", daten.hinweis));
     return daten;
@@ -190,26 +250,53 @@ async function auslastung() {
   });
 
   hinweisfeld.textContent =
-    "Ermittelt aus " + zahl(daten.erkannt) + " Zugriffen im Log des Containers, " +
+    "Rückblick aus " + zahl(daten.erkannt) + " Zugriffen im Log des Containers, " +
     "letzter Eintrag " + daten.letzteAnfrage + ". Eine Anfrage erscheint erst im " +
-    "Log, wenn sie beantwortet ist – gerade laufende Anfragen fehlen daher. " +
-    "Die Zahlen gelten für den Ollama-Dienst insgesamt, da das Zugriffslog das " +
-    "Modell nicht mitschreibt.";
+    "Log, wenn sie beantwortet ist – laufende Sitzungen stehen deshalb nur in " +
+    "der Live-Anzeige oben. Der Rückblick gilt für den Ollama-Dienst insgesamt, " +
+    "da das Zugriffslog das Modell nicht mitschreibt.";
   return daten;
 }
 
 // --- Ablauf ------------------------------------------------------------
+let letzteSpeicherdaten = null;
+
 async function aktualisieren() {
   const status = await dienst();
   if (!status.ok) return;
   const [speicherDaten, nutzungDaten] = await Promise.all([speicher(status), auslastung()]);
+  letzteSpeicherdaten = speicherDaten;
   modelle(speicherDaten, nutzungDaten);
   document.getElementById("fuss-zeit").textContent =
     "Stand " + new Date().toLocaleTimeString("de-DE");
 }
 
+// Die Auslastung laesst sich unabhaengig vom Rest neu laden.
+async function nurAuslastung() {
+  const knopf = document.getElementById("btn-nutzung");
+  knopf.disabled = true;
+  try {
+    const daten = await auslastung();
+    if (letzteSpeicherdaten) modelle(letzteSpeicherdaten, daten);
+  } finally {
+    knopf.disabled = false;
+  }
+}
+
+let takt = null;
+function taktSetzen() {
+  if (takt) clearInterval(takt);
+  takt = document.getElementById("f-auto").checked
+    ? setInterval(nurAuslastung, 10000)
+    : null;
+}
+
+document.getElementById("btn-nutzung").addEventListener("click", nurAuslastung);
+document.getElementById("f-auto").addEventListener("change", taktSetzen);
+
 holen("/healthz").then((d) => {
   document.getElementById("fuss-version").textContent = d.version || "?";
 });
 aktualisieren();
-setInterval(aktualisieren, 20000);
+taktSetzen();
+setInterval(aktualisieren, 30000);

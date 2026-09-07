@@ -46,8 +46,17 @@
   </section>
 
   <section>
-    <h2>Auslastung</h2>
-    <div id="nutzung-karte">Lade …</div>
+    <h2>Slot-Auslastung</h2>
+    <div class="knopfleiste">
+      <button id="btn-nutzung" class="primaer">Jetzt neu laden</button>
+      <label class="schalter">
+        <input type="checkbox" id="f-auto" checked> alle 10 Sekunden automatisch
+      </label>
+      <span id="nutzung-status" class="status"></span>
+    </div>
+    <div id="live-karte">Lade …</div>
+    <h3 class="untertitel">Rückblick</h3>
+    <div id="nutzung-karte"></div>
     <p class="hinweis" id="nutzung-hinweis"></p>
   </section>
 </main>

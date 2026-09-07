@@ -209,3 +209,18 @@ ul.protokoll { color: var(--gedaempft); font-size: 14px; margin: 12px 0; padding
 }
 .regler input[type="password"]:focus { outline: 2px solid var(--akzent); outline-offset: 1px; }
 #anmeldung .regler { max-width: 480px; }
+
+/* --- Live-Auslastung -------------------------------------------------- */
+.schalter { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--gedaempft); }
+.schalter input { accent-color: var(--akzent); }
+h3.untertitel { font-size: 15px; color: var(--gedaempft); margin: 26px 0 10px; font-weight: 600; }
+.slots { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 6px; }
+.slot {
+  flex: 1 1 60px; min-width: 60px; height: 46px;
+  border-radius: 8px; border: 1px solid var(--rand);
+  background: var(--flaeche);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--gedaempft);
+}
+.slot.belegt { background: rgba(76, 141, 255, 0.22); border-color: var(--akzent); color: var(--text); font-weight: 600; }
+.slot.ueberzaehlig { background: rgba(229, 96, 107, 0.22); border-color: var(--schlecht); color: var(--text); font-weight: 600; }
