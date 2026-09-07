@@ -4,7 +4,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=5021 \
-    OLLAMA_URL=http://AZEU-DEW-DEVGPU-02:5020 \
+    OLLAMA_URL=http://azeu-dew-devappl-01:5020 \
     OLLAMA_CONTAINER=ollama
 
 WORKDIR /opt/portal

@@ -38,7 +38,8 @@ async function seiteAufbauen() {
   document.getElementById("fuss-url").textContent = daten.publicUrl;
   document.getElementById("fuss-version").textContent = daten.version || "?";
   document.getElementById("curl-test").textContent = "curl " + daten.publicUrl + "/api/version";
-  document.getElementById("konfig").textContent = JSON.stringify(konfig, null, "\t");
+  // Vier Leerzeichen Einrückung – so, wie die Vorlage vorgegeben ist.
+  document.getElementById("konfig").textContent = JSON.stringify(konfig, null, 4);
   document.getElementById("modellnamen").textContent =
     daten.modelle.map((m) => m.name).join(" oder ");
 

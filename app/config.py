@@ -7,7 +7,7 @@ import os
 VERSION = "1.5 (Slots je Modell)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server).
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://AZEU-DEW-DEVGPU-02:5020").rstrip("/")
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://azeu-dew-devappl-01:5020").rstrip("/")
 
 # Adresse, die den Nutzern in der VS-Code-Konfiguration angezeigt wird.
 # Standardmaessig identisch mit OLLAMA_URL, kann aber abweichen, wenn das

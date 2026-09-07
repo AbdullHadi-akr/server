@@ -8,9 +8,9 @@ services:
       - "5021:5021"
     environment:
       # Adresse, unter der das Portal Ollama erreicht.
-      OLLAMA_URL: "http://AZEU-DEW-DEVGPU-02:5020"
+      OLLAMA_URL: "http://azeu-dew-devappl-01:5020"
       # Adresse, die den Nutzern in der VS-Code-Konfiguration gezeigt wird.
-      PUBLIC_OLLAMA_URL: "http://AZEU-DEW-DEVGPU-02:5020"
+      PUBLIC_OLLAMA_URL: "http://azeu-dew-devappl-01:5020"
       VENDOR_NAME: "A100"
 
       # Name des Containers, in dem Ollama laeuft (fuer die Betriebsseite).
