@@ -356,7 +356,9 @@ def geladene_modelle():
             "vramGib": round(vram / 1024 ** 3, 2),
             "gesamtGib": round(gesamt / 1024 ** 3, 2),
             "nurGpu": bool(gesamt) and vram >= gesamt * 0.99,
-            "kontext": eintrag.get("context_length") or 0,
+            # context_length ist die Kontextlaenge je Slot (der Wert aus
+            # OLLAMA_CONTEXT_LENGTH), nicht die Summe ueber alle Slots.
+            "kontextJeSlot": eintrag.get("context_length") or 0,
             "laeuftBis": eintrag.get("expires_at", ""),
         })
     return {"ok": True, "modelle": modelle,

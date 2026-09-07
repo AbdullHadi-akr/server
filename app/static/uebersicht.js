@@ -128,11 +128,13 @@ function modelle(daten, auslastung) {
     if (!m.nurGpu) kopf.appendChild(el("span", "abzeichen fehler", "teilweise im RAM"));
     karte.appendChild(kopf);
 
-    const kontextJeSlot = m.kontext ? Math.round(m.kontext / parallel) : kontext;
+    // Ollama meldet in /api/ps die Kontextlaenge je Slot - also den Wert aus
+    // OLLAMA_CONTEXT_LENGTH. Der Gesamtkontext ist das Vielfache davon.
+    const kontextJeSlot = m.kontextJeSlot || kontext;
     karte.appendChild(liste([
       ["Belegter VRAM", m.vramGib + " GiB"],
       ["Slots", parallel + " × " + zahl(kontextJeSlot) + " Token"],
-      ["Gesamtkontext", zahl(m.kontext || parallel * kontext) + " Token"],
+      ["Gesamtkontext", zahl(parallel * kontextJeSlot) + " Token"],
       ["Bereitgehalten bis", m.laeuftBis ? new Date(m.laeuftBis).toLocaleString("de-DE") : "–"],
     ]));
 

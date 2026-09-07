@@ -227,7 +227,7 @@ async function geladeneLaden() {
     dl.appendChild(el("dd", null,
       m.vramGib + " GiB im GPU-Speicher" +
       (m.nurGpu ? " (vollständig auf der GPU)" : " von " + m.gesamtGib + " GiB – teilweise im RAM!") +
-      (m.kontext ? " · Kontext " + zahl(m.kontext) : "")));
+      (m.kontextJeSlot ? " · Kontext je Slot " + zahl(m.kontextJeSlot) : "")));
   });
   ziel.appendChild(dl);
   ziel.appendChild(el("p", "hinweis", "Summe: " + daten.summeGib + " GiB"));
