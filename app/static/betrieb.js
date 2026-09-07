@@ -313,6 +313,24 @@ async function berechnen() {
     "KV-Typ " + daten.kvTyp + " (" + daten.kvHinweis + ")"));
 }
 
+// Unstimmige Einstellungen direkt am Rechner anzeigen.
+async function hinweiseLaden() {
+  const ziel = document.getElementById("hinweise");
+  const daten = await holen("/api/pruefung");
+  ziel.textContent = "";
+  if (!daten.ok || !daten.hinweise.length) return;
+  daten.hinweise.forEach((h) => {
+    const zeile = el("div", "zeile " + (h.stufe === "warnung" ? "fehler" : "warnung"));
+    zeile.appendChild(el("div", "symbol", h.stufe === "warnung" ? "❌" : "⚠️"));
+    const inhalt = el("div", "inhalt");
+    inhalt.appendChild(el("div", "titel", h.titel));
+    inhalt.appendChild(el("div", "detail", h.text));
+    if (h.abhilfe) inhalt.appendChild(el("div", "tipp", "→ " + h.abhilfe));
+    zeile.appendChild(inhalt);
+    ziel.appendChild(zeile);
+  });
+}
+
 async function uebernehmen() {
   const rueckfrage =
     "Der Ollama-Container wird mit OLLAMA_NUM_PARALLEL=" + rParallel.value +
@@ -353,6 +371,7 @@ async function uebernehmen() {
   }
   knopf.disabled = false;
   setTimeout(statusLaden, 2000);
+  setTimeout(hinweiseLaden, 2500);
 }
 
 // --- Logs --------------------------------------------------------------
@@ -410,6 +429,7 @@ function starten() {
     berechnen();
   });
   statusLaden();
+  hinweiseLaden();
   setInterval(statusLaden, 30000);
 }
 

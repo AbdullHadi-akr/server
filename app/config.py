@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "1.6 (getrennte Adressen)"
+VERSION = "1.7 (GPU-Werte und Pruefung)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -57,6 +57,8 @@ LOG_ZEILEN = int(os.environ.get("LOG_ZEILEN", "4000"))
 
 # --- GPU --------------------------------------------------------------------
 GPU_NAME = os.environ.get("GPU_NAME", "NVIDIA A100")
+# Rueckfallwert: Wird nur genutzt, wenn nvidia-smi im Ollama-Container
+# nicht erreichbar ist. Sonst gilt der gemessene Wert.
 GPU_VRAM_GIB = float(os.environ.get("GPU_VRAM_GIB", "80"))
 
 # Standardwerte, wie sie aktuell im Ollama-Container gesetzt sind.

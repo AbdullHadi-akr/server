@@ -5,7 +5,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import auth, config, dockerctl, nutzung, ollama, vram
+from . import auth, config, dockerctl, gpu, nutzung, ollama, pruefung, vram
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -145,6 +145,10 @@ class Handler(BaseHTTPRequestHandler):
             self._vram(parameter)
         elif pfad == "/api/nutzung":
             self._nutzung()
+        elif pfad == "/api/gpu":
+            self._json({"ok": True, **gpu.werte()})
+        elif pfad == "/api/pruefung":
+            self._pruefung()
         elif pfad == "/api/auth/status":
             self._json({"ok": True, "angemeldet": self._angemeldet(),
                         "steuerungAktiv": config.DOCKER_STEUERUNG,
@@ -200,11 +204,18 @@ class Handler(BaseHTTPRequestHandler):
         if not 1 <= gleichzeitig <= len(vram.MODELLE):
             self._fehler("Es koennen 1 oder 2 Modelle gleichzeitig geladen sein.")
             return
+        # Gegen den tatsaechlich vorhandenen Speicher rechnen, wenn
+        # nvidia-smi erreichbar ist - sonst gegen den konfigurierten Wert.
+        gpu_daten = gpu.werte()
+        vram_gib = gpu_daten["vramGib"]
+        gpu_name = (", ".join(g["name"] for g in gpu_daten["gpus"])
+                    if gpu_daten.get("gemessen") else config.GPU_NAME)
         self._json({
             "ok": True,
-            "gpu": config.GPU_NAME,
+            "gpu": gpu_name,
+            "gemessen": bool(gpu_daten.get("gemessen")),
             **vram.uebersicht(parallel, kontext, kv_typ,
-                              config.GPU_VRAM_GIB, gleichzeitig),
+                              vram_gib, gleichzeitig),
             "standard": {"parallel": config.STANDARD_PARALLEL,
                          "kontext": config.STANDARD_KONTEXT},
             "kvTypen": vram.KV_TYPEN,
@@ -262,6 +273,17 @@ class Handler(BaseHTTPRequestHandler):
         except dockerctl.DockerFehler as fehler:
             return {"ok": False, "fehler": str(fehler)}
         return nutzung.live(ausgabe, port, slots, ollama.eigene_adresse())
+
+    def _pruefung(self):
+        """Sammelt Hinweise auf unstimmige Einstellungen."""
+        try:
+            zustand = dockerctl.status(mit_statistik=False)
+        except dockerctl.DockerFehler:
+            # Ohne Docker-Zugriff bleiben die Pruefungen uebrig, die allein
+            # aus der Portal-Konfiguration folgen.
+            zustand = {"einstellungen": {}}
+        self._json(pruefung.hinweise(zustand, ollama.geladene_modelle(),
+                                     gpu.werte()))
 
     # -- Schreibende Routen ----------------------------------------------
     def do_POST(self):

@@ -59,7 +59,7 @@ Alles über Umgebungsvariablen:
 | `SITZUNGSDAUER`     | `28800`                             | Gültigkeit einer Anmeldung in Sekunden. |
 | `LOG_ZEILEN`        | `4000`                              | Log-Zeilen für die Auslastungsanalyse. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
-| `GPU_VRAM_GIB`      | `80`                                | VRAM der GPU für den Rechner. |
+| `GPU_VRAM_GIB`      | `80`                                | Rückfallwert, falls `nvidia-smi` nicht erreichbar ist. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
 | `STANDARD_KONTEXT`  | `50000`                             | Aktueller Wert von `OLLAMA_CONTEXT_LENGTH`. |
 | `PROBE_TIMEOUT`     | `10`                                | Timeout (s) für Erreichbarkeits-Prüfungen. |
@@ -175,8 +175,13 @@ wollen, ob der Dienst läuft und wie ausgelastet er ist. Aktualisiert sich alle
 
 - **Dienst** – Container-Zustand, Laufzeit, GPU-Zuweisung, konfigurierte Slots
   und Kontextlänge, CPU- und RAM-Verbrauch.
-- **GPU-Speicher** – tatsächliche Belegung laut Ollama (`/api/ps`) neben dem
-  rechnerisch erwarteten Wert.
+- **GPU** – die echten Werte der Karte, über `nvidia-smi` im Ollama-Container
+  gemessen: belegter und freier VRAM, Auslastung, Temperatur, Leistungsaufnahme.
+  Darunter, was davon auf Ollama entfällt (`/api/ps`) neben dem rechnerisch
+  erwarteten Wert. Ist `nvidia-smi` nicht erreichbar, sagt die Seite das und der
+  Rechner nutzt weiter den konfigurierten Wert `GPU_VRAM_GIB`.
+- **Hinweise** – Widersprüche zwischen VS-Code-Konfiguration, Container-Umgebung
+  und vorhandenem Speicher (siehe unten).
 - **Modelle und Slots** – je geladenem Modell der belegte VRAM, die Anzahl
   Slots mit ihrem Kontext, der Gesamtkontext und bis wann Ollama das Modell
   bereithält. Liegt ein Modell nur teilweise auf der GPU, wird das markiert.
@@ -219,6 +224,24 @@ Maximaldauer sowie Fehler.
 
 Ist die Live-Messung nicht möglich (kein Docker-Socket, `exec` untersagt), sagt
 die Seite das und der Rückblick funktioniert unabhängig davon weiter.
+
+## Plausibilitätsprüfung
+
+Übersicht und Einstellungsseite zeigen Hinweise, wenn Konfiguration und
+Wirklichkeit auseinanderlaufen. Geprüft wird:
+
+| Prüfung | warum sie zählt |
+|---|---|
+| `maxInputTokens` > `OLLAMA_CONTEXT_LENGTH` | VS Code darf mehr senden, als ein Slot fasst – der Anfang der Unterhaltung wird stillschweigend abgeschnitten |
+| `maxInputTokens + maxOutputTokens` > Kontext | bei langen Unterhaltungen bleibt kein Platz für die volle Antwort |
+| geschätzter VRAM > gemessener GPU-Speicher | nennt die noch mögliche Nutzerzahl bzw. Kontextlänge |
+| Modell liegt nur teilweise auf der GPU | der Rest liegt im RAM, Antworten werden um ein Vielfaches langsamer |
+| quantisierter KV-Cache ohne `OLLAMA_FLASH_ATTENTION` | ältere Ollama-Stände ignorieren die Quantisierung dann |
+| `OLLAMA_CONTEXT_LENGTH` nicht gesetzt | Ollamas eigener Standard ist deutlich kleiner |
+| `PUBLIC_OLLAMA_URL` nicht auflösbar | sonst trägt niemand eine funktionierende Adresse ein |
+
+Jeder Hinweis nennt Begründung und Gegenmittel. Warnungen sind rot, bloße
+Hinweise gelb; ist alles stimmig, verschwindet der Abschnitt.
 
 ## Passwortschutz der Einstellungsseite
 
@@ -271,6 +294,8 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 | `GET /api/docker/status` | Zustand des Ollama-Containers. |
 | `GET /api/docker/logs`   | Letzte Log-Zeilen (`?zeilen=300`). |
 | `GET /api/vram`          | VRAM-Schätzung (`?parallel=…&kontext=…&kv=…&modelle=…`). |
+| `GET /api/gpu`           | Gemessene GPU-Werte via `nvidia-smi`. |
+| `GET /api/pruefung`      | Hinweise auf unstimmige Einstellungen. |
 | `POST /api/docker/aktion` | `{"aktion": "start"\|"stopp"\|"neustart"}` |
 | `POST /api/docker/einstellungen` | `{"parallel": 4, "kontext": 50000, "kv": "f16"}` |
 | `GET /uebersicht`        | Nur-Lese-Übersicht. |
@@ -301,6 +326,8 @@ app/
   auth.py       Passwort-Hash, Sitzungen, Sperre nach Fehlversuchen
   nutzung.py    Slot-Auslastung aus dem Zugriffslog des Containers
   vram.py       VRAM-Schätzung aus Nutzeranzahl, Kontext und KV-Cache-Typ
+  gpu.py        Echte GPU-Werte über nvidia-smi im Ollama-Container
+  pruefung.py   Plausibilitätsprüfung von Konfiguration und Messwerten
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
   static/       index.html, uebersicht.html, betrieb.html,
                 style.css, app.js, uebersicht.js, betrieb.js

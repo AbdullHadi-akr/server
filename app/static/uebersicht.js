@@ -66,6 +66,64 @@ async function dienst() {
   return daten;
 }
 
+// --- GPU ---------------------------------------------------------------
+async function grafikkarte() {
+  const ziel = document.getElementById("gpu-karte");
+  const daten = await holen("/api/gpu");
+  ziel.textContent = "";
+
+  if (!daten.gemessen) {
+    ziel.appendChild(el("p", "detail",
+      "Keine Messwerte: " + (daten.fehler || "unbekannter Grund")));
+    ziel.appendChild(el("p", "hinweis",
+      (daten.hilfe || "") + " Gerechnet wird mit " + daten.vramGib + " GiB."));
+    return daten;
+  }
+
+  daten.gpus.forEach((g) => {
+    const karte = el("div", "karte");
+    const kopf = el("div", "kartenkopf");
+    kopf.appendChild(el("span", "abzeichen ok", "gemessen"));
+    kopf.appendChild(el("strong", null, g.name));
+    karte.appendChild(kopf);
+    karte.appendChild(liste([
+      ["VRAM", g.vramBelegtGib + " von " + g.vramGesamtGib + " GiB belegt"],
+      ["Frei", g.vramFreiGib + " GiB"],
+      ["Auslastung", g.auslastung === null ? "–" : g.auslastung + " %"],
+      ["Temperatur", g.temperatur === null ? "–" : g.temperatur + " °C"],
+      ["Leistung", g.leistungWatt === null ? "–" : g.leistungWatt + " W"],
+    ]));
+    const anteil = g.vramGesamtGib ? (g.vramBelegtGib / g.vramGesamtGib) * 100 : 0;
+    karte.appendChild(balken(anteil, anteil > 95));
+    ziel.appendChild(karte);
+  });
+  return daten;
+}
+
+// --- Hinweise ----------------------------------------------------------
+async function hinweise() {
+  const bereich = document.getElementById("hinweise-bereich");
+  const ziel = document.getElementById("hinweise");
+  const daten = await holen("/api/pruefung");
+  ziel.textContent = "";
+
+  if (!daten.ok || !daten.hinweise.length) {
+    bereich.hidden = true;
+    return;
+  }
+  bereich.hidden = false;
+  daten.hinweise.forEach((h) => {
+    const zeile = el("div", "zeile " + (h.stufe === "warnung" ? "fehler" : "warnung"));
+    zeile.appendChild(el("div", "symbol", h.stufe === "warnung" ? "❌" : "⚠️"));
+    const inhalt = el("div", "inhalt");
+    inhalt.appendChild(el("div", "titel", h.titel));
+    inhalt.appendChild(el("div", "detail", h.text));
+    if (h.abhilfe) inhalt.appendChild(el("div", "tipp", "→ " + h.abhilfe));
+    zeile.appendChild(inhalt);
+    ziel.appendChild(zeile);
+  });
+}
+
 // --- GPU-Speicher ------------------------------------------------------
 async function speicher(status) {
   const ziel = document.getElementById("vram-karte");
@@ -88,7 +146,7 @@ async function speicher(status) {
   kopf.appendChild(el("div", "grosszahl", belegt.toFixed(2) + " GiB"));
   kopf.appendChild(el("div", "detail",
     geladen.ok
-      ? "tatsächlich belegt von " + gesamt + " GiB" +
+      ? "von Ollama belegt, von " + gesamt + " GiB" +
         (schaetzung.ok ? " · rechnerisch erwartet: " + schaetzung.summeGib + " GiB" : "")
       : "Belegung nicht abrufbar: " + geladen.fehler));
   ziel.appendChild(kopf);
@@ -273,7 +331,9 @@ let letzteSpeicherdaten = null;
 async function aktualisieren() {
   const status = await dienst();
   if (!status.ok) return;
-  const [speicherDaten, nutzungDaten] = await Promise.all([speicher(status), auslastung()]);
+  const [speicherDaten, nutzungDaten] = await Promise.all([
+    speicher(status), auslastung(), grafikkarte(), hinweise(),
+  ]);
   letzteSpeicherdaten = speicherDaten;
   modelle(speicherDaten, nutzungDaten);
   document.getElementById("fuss-zeit").textContent =
