@@ -1,0 +1,138 @@
+:root {
+  --bg: #0f1117;
+  --flaeche: #171a23;
+  --rand: #262b38;
+  --text: #e6e8ee;
+  --gedaempft: #9aa3b5;
+  --akzent: #4c8dff;
+  --gut: #3fb27f;
+  --schlecht: #e5606b;
+  --warn: #d8a13a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7fa;
+    --flaeche: #ffffff;
+    --rand: #dfe3ec;
+    --text: #1b1f2a;
+    --gedaempft: #5c6474;
+    --akzent: #1e63d0;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+header {
+  background: linear-gradient(160deg, #1c2740, #12141c);
+  border-bottom: 1px solid var(--rand);
+  padding: 40px 0 32px;
+}
+header h1 { margin: 0 0 8px; font-size: 30px; color: #fff; }
+.lead { margin: 0; color: #c6cede; max-width: 70ch; }
+
+h2 {
+  font-size: 20px;
+  margin: 40px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rand);
+}
+h3 { margin: 0 0 4px; font-size: 16px; }
+
+code, pre, kbd {
+  font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+}
+code { background: var(--flaeche); border: 1px solid var(--rand); border-radius: 4px; padding: 1px 5px; font-size: 0.9em; }
+kbd {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 0.85em; white-space: nowrap;
+}
+
+.schritte { list-style: none; counter-reset: schritt; padding: 0; margin: 0; }
+.schritte > li {
+  counter-increment: schritt;
+  position: relative;
+  padding: 0 0 4px 46px;
+  margin-bottom: 24px;
+}
+.schritte > li::before {
+  content: counter(schritt);
+  position: absolute; left: 0; top: 0;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--akzent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 15px;
+}
+.schritte p { margin: 4px 0; }
+.hinweis { color: var(--gedaempft); font-size: 14px; }
+
+.codebox { position: relative; margin: 12px 0; }
+.codebox pre {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.kopieren {
+  position: absolute; top: 10px; right: 10px;
+  background: var(--akzent); color: #fff;
+  border: 0; border-radius: 6px; padding: 6px 12px;
+  cursor: pointer; font-size: 13px;
+}
+.kopieren:hover { filter: brightness(1.1); }
+
+.karten { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.karte {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: 10px; padding: 16px;
+}
+.karte h3 { color: var(--akzent); }
+.karte dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 12px 0 0; font-size: 14px; }
+.karte dt { color: var(--gedaempft); }
+.karte dd { margin: 0; }
+
+.knopfleiste { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
+button {
+  background: var(--flaeche); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 9px 16px; font-size: 15px; cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--akzent); }
+button:disabled { opacity: 0.5; cursor: progress; }
+button.primaer { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+.status { color: var(--gedaempft); font-size: 14px; }
+
+.zeile {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-left-width: 4px; border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 8px;
+}
+.zeile.ok { border-left-color: var(--gut); }
+.zeile.fehler { border-left-color: var(--schlecht); }
+.zeile.laeuft { border-left-color: var(--warn); }
+.zeile .symbol { font-size: 18px; line-height: 1.4; }
+.zeile .inhalt { flex: 1; min-width: 0; }
+.zeile .titel { font-weight: 600; }
+.zeile .detail { color: var(--gedaempft); font-size: 14px; word-break: break-word; }
+.zeile .tipp { color: var(--warn); font-size: 14px; margin-top: 4px; }
+.zeile .dauer { color: var(--gedaempft); font-size: 13px; white-space: nowrap; }
+
+dl.hilfe dt, #hilfe dt { font-weight: 600; margin-top: 14px; }
+#hilfe dd { margin: 4px 0 0; color: var(--gedaempft); }
+
+footer { color: var(--gedaempft); font-size: 14px; border-top: 1px solid var(--rand); margin-top: 48px; padding: 20px 24px 40px; }

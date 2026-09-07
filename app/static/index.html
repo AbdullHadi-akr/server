@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lokale Modelle in VS Code</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Lokale Modelle in VS&nbsp;Code</h1>
+    <p class="lead">
+      Auf <code id="kopf-url">…</code> laufen die Modelle
+      <strong>qwen3:30b-a3b</strong> und <strong>qwen3-coder:30b</strong> unter Ollama.
+      Diese Seite zeigt, wie du sie in den VS-Code-Chat einbindest – und prüft auf
+      Knopfdruck, ob der Server sauber antwortet.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="anleitung">
+    <h2>Einrichtung in VS&nbsp;Code</h2>
+    <ol class="schritte">
+      <li>
+        <h3>Modellverwaltung öffnen</h3>
+        <p><kbd>Strg</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> drücken und
+        <em>Chat: Manage Language Models</em> auswählen.</p>
+      </li>
+      <li>
+        <h3>Eigenen Endpunkt anlegen</h3>
+        <p><em>Add Models</em> → <em>Custom Endpoint</em>. Danach mehrfach
+        <kbd>Enter</kbd> drücken, bis sich die Datei
+        <code>chatLanguageModels.json</code> öffnet.</p>
+      </li>
+      <li>
+        <h3>Vorlage ersetzen</h3>
+        <p>Das automatisch erzeugte Template komplett löschen und stattdessen
+        den folgenden Inhalt einfügen, dann speichern
+        (<kbd>Strg</kbd>+<kbd>S</kbd>):</p>
+        <div class="codebox">
+          <button class="kopieren" data-ziel="konfig">Kopieren</button>
+          <pre id="konfig">wird geladen …</pre>
+        </div>
+        <p class="hinweis">
+          Beide Modelle stehen in einem gemeinsamen Anbieter-Eintrag – du musst
+          die Prozedur also nur einmal durchlaufen.
+        </p>
+      </li>
+      <li>
+        <h3>Modell im Chat wählen</h3>
+        <p>Im Chat-Fenster oben rechts die Modellauswahl öffnen und
+        <strong id="modellnamen">…</strong> auswählen.</p>
+        <p class="hinweis">
+          Die <em>erste</em> Antwort kann verzögert kommen, weil Ollama das Modell
+          erst in den Speicher lädt. Alle weiteren Antworten kommen dann zügig.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="modelle">
+    <h2>Verfügbare Modelle</h2>
+    <div id="modellkarten" class="karten">Lade Modelle …</div>
+  </section>
+
+  <section id="pruefung">
+    <h2>Funktionsprüfung</h2>
+    <p>
+      Prüft, ob Ollama erreichbar ist, ob beide Modelle installiert sind und ob
+      der OpenAI-kompatible Endpunkt (<code>/v1/chat/completions</code>), den
+      VS&nbsp;Code anspricht, korrekt antwortet.
+    </p>
+    <div class="knopfleiste">
+      <button id="btn-diagnose" class="primaer">Server prüfen</button>
+      <button id="btn-modelltest">Modelle live testen</button>
+      <span id="status-text" class="status"></span>
+    </div>
+    <div id="diagnose-ergebnis"></div>
+    <div id="test-ergebnis"></div>
+  </section>
+
+  <section id="hilfe">
+    <h2>Wenn etwas nicht klappt</h2>
+    <dl>
+      <dt>„No response“ oder Timeout beim ersten Prompt</dt>
+      <dd>Normal beim Kaltstart: Das 30B-Modell wird geladen. Einmal abwarten und
+      die Anfrage wiederholen.</dd>
+
+      <dt>VS Code meldet, der Endpunkt sei nicht erreichbar</dt>
+      <dd>Die <code>url</code> in der Konfiguration muss vom Arbeitsplatz aus
+      erreichbar sein – ohne <code>/v1</code> am Ende, das hängt VS&nbsp;Code
+      selbst an. Test im Terminal:
+      <code id="curl-test">curl …/api/version</code></dd>
+
+      <dt>Modell taucht in der Auswahl nicht auf</dt>
+      <dd>JSON-Syntax prüfen (jede Zeile außer der letzten im Objekt braucht ein
+      Komma) und VS&nbsp;Code neu laden:
+      <kbd>Strg</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> → <em>Developer: Reload Window</em>.</dd>
+
+      <dt>Ollama antwortet nur auf dem Server selbst</dt>
+      <dd>Ollama mit <code>OLLAMA_HOST=0.0.0.0:5020</code> starten, sonst lauscht
+      der Dienst nur auf <code>127.0.0.1</code>.</dd>
+
+      <dt>Modell fehlt auf dem Server</dt>
+      <dd><code>ollama pull qwen3:30b-a3b</code> bzw.
+      <code>ollama pull qwen3-coder:30b</code></dd>
+    </dl>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Portal Port <strong>5021</strong> · Ollama <code id="fuss-url">…</code></p>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
