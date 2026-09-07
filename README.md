@@ -187,6 +187,11 @@ wollen, ob der Dienst läuft und wie ausgelastet er ist. Aktualisiert sich alle
 Ollama bietet keine Schnittstelle für belegte Slots. Das Portal misst daher
 auf zwei voneinander unabhängigen Wegen:
 
+**Gesamtzahl der Slots.** `OLLAMA_NUM_PARALLEL` gilt **je Modell** – Ollama
+hält für jedes geladene Modell einen eigenen Satz Slots vor. Bei 4 parallelen
+Anfragen und zwei geladenen Modellen sind es also 8 Slots. Die Übersicht rechnet
+entsprechend und schreibt die Herleitung dazu.
+
 **Live – gerade aktive Sitzungen.** Das Portal liest über den Docker-Socket
 `/proc/net/tcp` *im Ollama-Container* und zählt die hergestellten Verbindungen
 auf dessen Port. Angezeigt wird das als Slot-Leiste („aktiv“ / „frei“); mehr
@@ -197,7 +202,8 @@ Portals rechnet es anhand seiner eigenen Adresse heraus, `LISTEN`- und
 > VS Code hält je laufendem Chat eine Verbindung offen. Nach einer Antwort
 > kann sie durch Keep-Alive noch kurz bestehen bleiben – kurzzeitig kann die
 > Anzeige daher etwas höher liegen als die Zahl der wirklich rechnenden
-> Anfragen.
+> Anfragen. Und eine Verbindung verrät nicht, welches Modell sie nutzt: Die
+> Zahl gilt für alle geladenen Modelle zusammen, nicht je Modell.
 
 **Rückblick – die letzten 15 und 60 Minuten.** Aus dem GIN-Zugriffslog des
 Containers (Endzeitpunkt und Dauer je Anfrage) rekonstruiert das Portal das

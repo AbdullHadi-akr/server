@@ -228,8 +228,19 @@ class Handler(BaseHTTPRequestHandler):
             slots = config.STANDARD_PARALLEL
             logtext = ""
 
-        ergebnis = nutzung.auswerten(logtext, slots)
-        ergebnis["live"] = self._live_slots(zustand, slots)
+        # OLLAMA_NUM_PARALLEL gilt je geladenem Modell: Ollama haelt fuer
+        # jedes Modell einen eigenen Satz Slots vor. Die Gesamtkapazitaet ist
+        # also das Vielfache der Anzahl geladener Modelle.
+        geladen = ollama.geladene_modelle()
+        anzahl_modelle = len(geladen.get("modelle", [])) if geladen.get("ok") else 0
+        slots_gesamt = slots * max(1, anzahl_modelle)
+
+        ergebnis = nutzung.auswerten(logtext, slots_gesamt)
+        ergebnis["slotsJeModell"] = slots
+        ergebnis["modelleGeladen"] = anzahl_modelle
+        ergebnis["live"] = self._live_slots(zustand, slots_gesamt)
+        ergebnis["live"]["slotsJeModell"] = slots
+        ergebnis["live"]["modelleGeladen"] = anzahl_modelle
         self._json(ergebnis)
 
     def _live_slots(self, zustand, slots):

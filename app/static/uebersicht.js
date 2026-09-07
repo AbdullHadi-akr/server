@@ -143,14 +143,9 @@ function modelle(daten, auslastung) {
 
     if (live) {
       karte.appendChild(el("p", "hinweis",
-        "Jetzt aktiv: " + live.aktiv + " von " + parallel + " Slots"));
-      karte.appendChild(slotReihe(live.aktiv, parallel));
-    }
-    if (spitze !== null) {
-      karte.appendChild(el("p", "hinweis",
-        "Höchste gemessene Belegung der letzten " +
-        nutzungsdaten.fenster[0].minuten + " Minuten: " + spitze + " von " +
-        parallel + " Slots"));
+        "Dieses Modell stellt " + parallel + " der insgesamt " + live.slots +
+        " Slots. Wie viele davon gerade belegt sind, lässt sich nicht je " +
+        "Modell trennen – siehe Slot-Auslastung unten."));
     }
     ziel.appendChild(karte);
   });
@@ -205,11 +200,24 @@ function liveKarte(live, slots) {
       : "aktive Sitzungen · " + live.frei + " Slots frei"));
   karte.appendChild(kopf);
   karte.appendChild(slotReihe(live.aktiv, live.slots));
+
+  // OLLAMA_NUM_PARALLEL gilt je Modell – die Gesamtzahl der Slots ergibt
+  // sich erst mit der Anzahl geladener Modelle.
+  if (live.slotsJeModell) {
+    karte.appendChild(el("p", "hinweis",
+      live.slotsJeModell + " Slots je Modell × " +
+      (live.modelleGeladen || 0) + " geladene Modelle = " + live.slots +
+      " Slots insgesamt" +
+      (live.modelleGeladen ? "" :
+        " (kein Modell geladen – gerechnet wird mit einem)")));
+  }
   karte.appendChild(el("p", "hinweis",
     "Gezählt werden die gerade offenen Verbindungen zu Ollama (Port " +
     live.port + "). VS Code hält je laufendem Chat eine Verbindung; nach der " +
     "Antwort kann sie noch kurz bestehen bleiben. Die " + live.eigene +
-    " Abfrage(n) dieser Seite sind herausgerechnet."));
+    " Abfrage(n) dieser Seite sind herausgerechnet. Die Verbindung verrät " +
+    "nicht, welches Modell sie nutzt – die Zahl gilt daher für alle " +
+    "geladenen Modelle zusammen."));
   ziel.appendChild(karte);
 }
 
@@ -253,8 +261,9 @@ async function auslastung() {
     "Rückblick aus " + zahl(daten.erkannt) + " Zugriffen im Log des Containers, " +
     "letzter Eintrag " + daten.letzteAnfrage + ". Eine Anfrage erscheint erst im " +
     "Log, wenn sie beantwortet ist – laufende Sitzungen stehen deshalb nur in " +
-    "der Live-Anzeige oben. Der Rückblick gilt für den Ollama-Dienst insgesamt, " +
-    "da das Zugriffslog das Modell nicht mitschreibt.";
+    "der Live-Anzeige oben. Der Rückblick gilt – wie die Live-Anzeige – für " +
+    "alle geladenen Modelle zusammen, da das Zugriffslog das Modell nicht " +
+    "mitschreibt; verglichen wird daher mit allen " + daten.slots + " Slots.";
   return daten;
 }
 
