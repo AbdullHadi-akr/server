@@ -4,15 +4,18 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "1.5 (Slots je Modell)"
+VERSION = "1.6 (getrennte Adressen)"
 
-# Adresse, unter der das Portal Ollama erreicht (Server-zu-Server).
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://azeu-dew-devappl-01:5020").rstrip("/")
+# Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
+# fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
+OLLAMA_URL = os.environ.get(
+    "OLLAMA_URL", "http://AZEU-DEW-DEVGPU-02:5020").rstrip("/")
 
-# Adresse, die den Nutzern in der VS-Code-Konfiguration angezeigt wird.
-# Standardmaessig identisch mit OLLAMA_URL, kann aber abweichen, wenn das
-# Portal Ollama ueber einen internen Namen erreicht, die Clients aber nicht.
-PUBLIC_OLLAMA_URL = os.environ.get("PUBLIC_OLLAMA_URL", OLLAMA_URL).rstrip("/")
+# Adresse, die den Nutzern in der VS-Code-Konfiguration angezeigt wird. Sie
+# weicht bewusst von OLLAMA_URL ab: Das Portal erreicht Ollama unter dem
+# Namen des GPU-Servers, die Arbeitsplaetze tragen den anderen Namen ein.
+PUBLIC_OLLAMA_URL = os.environ.get(
+    "PUBLIC_OLLAMA_URL", "http://azeu-dew-devappl-01:5020").rstrip("/")
 
 # Name des Anbieter-Eintrags in der chatLanguageModels.json.
 VENDOR_NAME = os.environ.get("VENDOR_NAME", "A100")

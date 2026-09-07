@@ -20,7 +20,8 @@ docker compose up -d --build
 # oder ohne Compose:
 docker build -t modell-portal .
 docker run -d --name modell-portal -p 5021:5021 \
-  -e OLLAMA_URL=http://azeu-dew-devappl-01:5020 \
+  -e OLLAMA_URL=http://AZEU-DEW-DEVGPU-02:5020 \
+  -e PUBLIC_OLLAMA_URL=http://azeu-dew-devappl-01:5020 \
   modell-portal
 ```
 
@@ -46,8 +47,8 @@ Alles über Umgebungsvariablen:
 
 | Variable            | Standard                            | Bedeutung |
 |---------------------|-------------------------------------|-----------|
-| `OLLAMA_URL`        | `http://azeu-dew-devappl-01:5020`   | Adresse, unter der **das Portal** Ollama erreicht (für die Prüfungen). |
-| `PUBLIC_OLLAMA_URL` | wie `OLLAMA_URL`                    | Adresse, die den Nutzern in der VS-Code-Konfiguration angezeigt wird. |
+| `OLLAMA_URL`        | `http://AZEU-DEW-DEVGPU-02:5020`    | Adresse, unter der **das Portal** Ollama erreicht: Prüfungen, Modelltests, Status, Auslastung. |
+| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5020`   | Adresse, die den **Nutzern** in der VS-Code-Konfiguration angezeigt wird. |
 | `VENDOR_NAME`       | `A100`                              | Name des Anbieter-Eintrags und Suffix der Modellnamen. |
 | `PORT` / `HOST`     | `5021` / `0.0.0.0`                  | Bindung des Portals. |
 | `OLLAMA_CONTAINER`  | `ollama`                            | Name des Containers, in dem Ollama läuft. |
