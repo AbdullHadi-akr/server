@@ -39,7 +39,7 @@ services:
     # GID der Gruppe "docker" auf dem Host; ermittelbar mit
     # 'getent group docker'. Ohne passende GID verweigert der Socket den Zugriff.
     group_add:
-      - "999"
+      - "115"
     # Noetig, wenn Ollama auf dem Docker-Host selbst laeuft und ueber
     # host.docker.internal erreicht werden soll.
     extra_hosts:

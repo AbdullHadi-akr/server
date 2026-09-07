@@ -151,7 +151,7 @@ Die Betriebsseite braucht den Docker-Socket:
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
 group_add:
-  - "999"          # GID der Gruppe docker, ermitteln mit: getent group docker
+  - "115"          # GID der Gruppe docker, ermitteln mit: getent group docker
 ```
 
 Zugriff auf den Docker-Socket entspricht faktisch Root-Rechten auf dem Host.

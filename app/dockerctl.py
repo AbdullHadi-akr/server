@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 
 from . import config
 
-API_VERSION = "v1.41"
+API_VERSION = "v1.44"
 
 # Diese Umgebungsvariablen werden auf der Betriebsseite angezeigt.
 INTERESSANTE_VARS = [
