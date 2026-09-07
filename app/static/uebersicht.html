@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Übersicht – Ollama</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav class="navi">
+      <a href="/">Einrichtung</a>
+      <a href="/uebersicht" class="aktiv">Übersicht</a>
+      <a href="/betrieb">Einstellungen</a>
+    </nav>
+    <h1>Übersicht</h1>
+    <p class="lead">
+      Zustand des Ollama-Dienstes, Speicherbelegung der GPU und Auslastung der
+      Slots. Diese Seite zeigt nur an – geändert wird nichts.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>Dienst</h2>
+    <div id="status-karte" class="karte">Lade …</div>
+  </section>
+
+  <section>
+    <h2>GPU-Speicher</h2>
+    <div id="vram-karte">Lade …</div>
+  </section>
+
+  <section>
+    <h2>Modelle und Slots</h2>
+    <p class="hinweis">
+      Ollama hält je geladenem Modell <code>OLLAMA_NUM_PARALLEL</code> Slots
+      bereit; jeder Slot hat seinen eigenen Kontext von
+      <code>OLLAMA_CONTEXT_LENGTH</code> Token.
+    </p>
+    <div id="modell-karten">Lade …</div>
+  </section>
+
+  <section>
+    <h2>Auslastung</h2>
+    <div id="nutzung-karte">Lade …</div>
+    <p class="hinweis" id="nutzung-hinweis"></p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>
+    Automatische Aktualisierung alle 20 Sekunden · Version
+    <span id="fuss-version">…</span> · <span id="fuss-zeit"></span>
+  </p>
+</footer>
+
+<script src="/uebersicht.js"></script>
+</body>
+</html>

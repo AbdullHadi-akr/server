@@ -5,6 +5,14 @@ Schritt für Schritt, wie die lokal auf **Port 5020** unter Ollama laufenden Mod
 (`qwen3:30b-a3b` und `qwen3-coder:30b`) im VS-Code-Chat eingebunden werden, und
 prüft auf Knopfdruck, ob Ollama korrekt läuft und die Modelle sauber antworten.
 
+## Die drei Seiten
+
+| Seite | Zugang | Inhalt |
+|-------|--------|--------|
+| `/` | offen | Anleitung zur Einbindung in VS Code, Funktionsprüfung |
+| `/uebersicht` | offen, nur lesend | Dienst-Status, GPU-Speicher, Modelle, Slot-Auslastung |
+| `/betrieb` | **Passwort** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
+
 ## Starten
 
 ```bash
@@ -45,7 +53,10 @@ Alles über Umgebungsvariablen:
 | `OLLAMA_CONTAINER`  | `ollama`                            | Name des Containers, in dem Ollama läuft. |
 | `DOCKER_SOCKET`     | `/var/run/docker.sock`              | Pfad zum Docker-Socket. |
 | `DOCKER_STEUERUNG`  | `true`                              | `false` = Betriebsseite nur lesend. |
-| `STEUER_TOKEN`      | leer                                | Passwort für schreibende Aktionen. |
+| `PORTAL_PASSWORT`   | leer                                | Passwort fest vorgeben statt Ersteinrichtung. |
+| `DATEN_VERZEICHNIS` | `/data`                             | Ablage des Passwort-Hashes. |
+| `SITZUNGSDAUER`     | `28800`                             | Gültigkeit einer Anmeldung in Sekunden. |
+| `LOG_ZEILEN`        | `4000`                              | Log-Zeilen für die Auslastungsanalyse. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
 | `GPU_VRAM_GIB`      | `80`                                | VRAM der GPU für den Rechner. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
@@ -151,10 +162,74 @@ Deshalb:
   ansprechen.
 - `DOCKER_STEUERUNG=false` schaltet alle schreibenden Aktionen ab; die Seite
   bleibt als reine Statusanzeige nutzbar.
-- `STEUER_TOKEN=…` verlangt für Neustart und Einstellungsänderungen ein
-  Passwort (Header `X-Portal-Token`, im Browser einmalig abgefragt).
-- Ohne gemounteten Socket läuft das Portal normal weiter; die Betriebsseite
-  erklärt dann, was fehlt.
+- Die Einstellungsseite ist passwortgeschützt (siehe unten).
+- Ohne gemounteten Socket läuft das Portal normal weiter; die Seiten erklären
+  dann, was fehlt.
+
+## Übersichtsseite (`/uebersicht`)
+
+Ohne Anmeldung erreichbar und rein lesend – gedacht für alle, die nur wissen
+wollen, ob der Dienst läuft und wie ausgelastet er ist. Aktualisiert sich alle
+20 Sekunden und zeigt:
+
+- **Dienst** – Container-Zustand, Laufzeit, GPU-Zuweisung, konfigurierte Slots
+  und Kontextlänge, CPU- und RAM-Verbrauch.
+- **GPU-Speicher** – tatsächliche Belegung laut Ollama (`/api/ps`) neben dem
+  rechnerisch erwarteten Wert.
+- **Modelle und Slots** – je geladenem Modell der belegte VRAM, die Anzahl
+  Slots mit ihrem Kontext, der Gesamtkontext und bis wann Ollama das Modell
+  bereithält. Liegt ein Modell nur teilweise auf der GPU, wird das markiert.
+- **Auslastung** – für die letzten 15 und 60 Minuten: Anzahl Anfragen, höchste
+  gleichzeitige Slot-Belegung, mittlere Belegung, Median- und Maximaldauer
+  sowie fehlerhafte Anfragen.
+
+Die Auslastung wird aus dem Zugriffslog des Containers gewonnen. Ollama
+protokolliert jede beantwortete Anfrage im GIN-Format mit Endzeitpunkt und
+Dauer; daraus lässt sich das Zeitfenster jeder Anfrage rekonstruieren und per
+Sweep-Line ermitteln, wie viele Slots gleichzeitig belegt waren.
+
+> **Zwei Grenzen des Verfahrens, die die Seite auch selbst nennt:** Eine Zeile
+> entsteht erst, wenn die Anfrage beantwortet ist – *gerade laufende* Anfragen
+> sind nicht enthalten, die Werte beschreiben also das zurückliegende Fenster
+> statt einer Momentaufnahme. Und das Zugriffslog schreibt das Modell nicht
+> mit, weshalb die Auslastungszahlen für den Ollama-Dienst insgesamt gelten
+> und nicht je Modell aufgeschlüsselt sind.
+
+## Passwortschutz der Einstellungsseite
+
+Beim ersten Aufruf von `/betrieb` fordert das Portal zum Festlegen eines
+Passworts auf (mindestens 8 Zeichen). Gespeichert wird ausschließlich ein
+**PBKDF2-HMAC-SHA256-Hash mit 240 000 Iterationen und zufälligem 16-Byte-Salz**
+unter `/data/auth.json` (Rechte 0600) – das Passwort selbst liegt nirgends auf
+der Platte.
+
+Nach der Anmeldung erhält der Browser ein zufälliges Sitzungs-Token als
+`HttpOnly`-Cookie (`SameSite=Strict`), gültig für `SITZUNGSDAUER` Sekunden und
+bei Nutzung gleitend verlängert. Die Sitzungen liegen nur im Arbeitsspeicher
+und sind nach einem Neustart des Portals ungültig. Fünf Fehlversuche sperren
+die betreffende Adresse für 60 Sekunden.
+
+Das Passwort lässt sich auf der Seite ändern; das beendet alle offenen
+Sitzungen. Vergessen? Dann `docker compose exec portal rm /data/auth.json`
+ausführen und den Container neu starten – der nächste Aufruf startet wieder
+mit der Ersteinrichtung.
+
+Damit das Passwort einen Neustart überlebt, braucht das Portal ein Volume:
+
+```yaml
+volumes:
+  - portal-daten:/data
+```
+
+Für automatisierte Deployments lässt sich das Passwort alternativ per
+`PORTAL_PASSWORT` fest vorgeben; dann entfällt die Ersteinrichtung und die
+Änderungsfunktion im Browser.
+
+> Das Cookie wird **ohne** `Secure`-Flag gesetzt, weil das Portal im internen
+> Netz über `http` ausgeliefert wird. Passwort und Cookie gehen damit
+> unverschlüsselt über das Netz – für ein internes Werkzeug vertretbar, für
+> eine Veröffentlichung nach außen nicht. Dort gehört ein TLS-Reverse-Proxy
+> davor.
 
 ## API
 
@@ -173,6 +248,10 @@ Deshalb:
 | `GET /api/vram`          | VRAM-Schätzung (`?parallel=…&kontext=…&kv=…&modelle=…`). |
 | `POST /api/docker/aktion` | `{"aktion": "start"\|"stopp"\|"neustart"}` |
 | `POST /api/docker/einstellungen` | `{"parallel": 4, "kontext": 50000, "kv": "f16"}` |
+| `GET /uebersicht`        | Nur-Lese-Übersicht. |
+| `GET /api/nutzung`       | Slot-Auslastung aus den Zugriffslogs. |
+| `GET /api/auth/status`   | Ist ein Passwort gesetzt, ist die Sitzung gültig? |
+| `POST /api/auth/einrichten` \| `/anmelden` \| `/abmelden` \| `/passwort` | Anmeldung. |
 
 ## Einrichtung in VS Code (Kurzfassung)
 
@@ -194,9 +273,12 @@ app/
   ollama.py     Prüfungen gegen Ollama (Erreichbarkeit, Modelle, Chat, Tools)
   dockerctl.py  Docker-Engine-API über den Unix-Socket: Status, Neustart,
                 Neuerstellen mit geänderter Umgebung inkl. Rollback
+  auth.py       Passwort-Hash, Sitzungen, Sperre nach Fehlversuchen
+  nutzung.py    Slot-Auslastung aus dem Zugriffslog des Containers
   vram.py       VRAM-Schätzung aus Nutzeranzahl, Kontext und KV-Cache-Typ
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
-  static/       index.html, betrieb.html, style.css, app.js, betrieb.js
+  static/       index.html, uebersicht.html, betrieb.html,
+                style.css, app.js, uebersicht.js, betrieb.js
 Dockerfile
 docker-compose.yml
 ```

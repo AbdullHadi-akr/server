@@ -10,9 +10,14 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /opt/portal
 COPY app/ ./app/
 
-# Als unprivilegierter Nutzer laufen lassen.
-RUN useradd --system --create-home --uid 10001 portal
+# Als unprivilegierter Nutzer laufen lassen. /data nimmt den Passwort-Hash
+# auf; Docker uebernimmt die Rechte dieses Verzeichnisses beim ersten
+# Einbinden eines leeren Volumes.
+RUN useradd --system --create-home --uid 10001 portal \
+    && mkdir -p /data \
+    && chown portal:portal /data
 USER portal
+VOLUME ["/data"]
 
 EXPOSE 5021
 

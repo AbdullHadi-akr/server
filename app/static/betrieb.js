@@ -21,21 +21,113 @@ async function holen(pfad) {
 }
 
 async function senden(pfad, rumpf) {
-  const kopf = { "Content-Type": "application/json" };
-  const token = localStorage.getItem("portalToken");
-  if (token) kopf["X-Portal-Token"] = token;
-  const antwort = await fetch(pfad, { method: "POST", headers: kopf, body: JSON.stringify(rumpf) });
+  const antwort = await fetch(pfad, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(rumpf),
+  });
   const daten = await antwort.json().catch(() => ({ ok: false, fehler: "HTTP " + antwort.status }));
-  if (antwort.status === 401) {
-    // Das Portal ist mit STEUER_TOKEN geschützt – einmalig abfragen und merken.
-    const eingabe = window.prompt("Steuer-Token für schreibende Aktionen:");
-    if (eingabe) {
-      localStorage.setItem("portalToken", eingabe);
-      return senden(pfad, rumpf);
-    }
+  if (antwort.status === 401 && !pfad.startsWith("/api/auth/")) {
+    // Sitzung abgelaufen – zurück zur Anmeldung.
+    anmeldungZeigen();
   }
   return daten;
 }
+
+// --- Anmeldung ---------------------------------------------------------
+let authZustand = null;
+
+function anmeldungZeigen() {
+  document.getElementById("anmeldung").hidden = false;
+  document.getElementById("geschuetzt").hidden = true;
+  const ersteinrichtung = authZustand && !authZustand.eingerichtet;
+  document.getElementById("anmeldung-titel").textContent =
+    ersteinrichtung ? "Passwort festlegen" : "Anmeldung";
+  document.getElementById("wiederholung-block").hidden = !ersteinrichtung;
+  document.getElementById("btn-anmelden").textContent =
+    ersteinrichtung ? "Passwort festlegen" : "Anmelden";
+  document.getElementById("f-passwort").autocomplete =
+    ersteinrichtung ? "new-password" : "current-password";
+
+  let text;
+  if (ersteinrichtung) {
+    text = "Diese Seite ist noch nicht geschützt. Lege jetzt ein Passwort fest " +
+      "(mindestens " + authZustand.minLaenge + " Zeichen). Gespeichert wird nur " +
+      "ein Hash, nie das Passwort selbst.";
+    if (!authZustand.speicherbar) {
+      text += " Achtung: " + authZustand.datenVerzeichnis + " ist nicht " +
+        "beschreibbar – ohne eingebundenes Volume lässt sich kein Passwort " +
+        "speichern.";
+    }
+  } else if (authZustand && authZustand.perUmgebung) {
+    text = "Das Passwort ist per PORTAL_PASSWORT vorgegeben.";
+  } else {
+    text = "Die Einstellungen sind passwortgeschützt. Nur ansehen? " +
+      "Die Übersicht ist ohne Anmeldung zugänglich.";
+  }
+  document.getElementById("anmeldung-text").textContent = text;
+}
+
+function inhaltZeigen() {
+  document.getElementById("anmeldung").hidden = true;
+  document.getElementById("geschuetzt").hidden = false;
+  document.getElementById("konto").hidden = authZustand && authZustand.perUmgebung;
+  starten();
+}
+
+async function authPruefen() {
+  authZustand = await holen("/api/auth/status");
+  if (authZustand.angemeldet) inhaltZeigen();
+  else anmeldungZeigen();
+}
+
+document.getElementById("anmelde-formular").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const feld = document.getElementById("f-passwort");
+  const anzeige = document.getElementById("anmelde-meldung");
+  const ersteinrichtung = authZustand && !authZustand.eingerichtet;
+
+  if (ersteinrichtung && feld.value !== document.getElementById("f-passwort2").value) {
+    anzeige.textContent = "Die beiden Eingaben stimmen nicht überein.";
+    return;
+  }
+  anzeige.textContent = "…";
+  const daten = await senden(
+    ersteinrichtung ? "/api/auth/einrichten" : "/api/auth/anmelden",
+    { passwort: feld.value });
+  if (daten.ok) {
+    feld.value = "";
+    anzeige.textContent = "";
+    authZustand = await holen("/api/auth/status");
+    inhaltZeigen();
+  } else {
+    anzeige.textContent = daten.fehler;
+  }
+});
+
+document.getElementById("passwort-formular").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const anzeige = document.getElementById("passwort-meldung");
+  anzeige.textContent = "…";
+  const daten = await senden("/api/auth/passwort", {
+    alt: document.getElementById("f-alt").value,
+    neu: document.getElementById("f-neu").value,
+  });
+  if (daten.ok) {
+    document.getElementById("f-alt").value = "";
+    document.getElementById("f-neu").value = "";
+    anzeige.textContent = "Geändert – bitte neu anmelden.";
+    setTimeout(authPruefen, 1200);
+  } else {
+    anzeige.textContent = daten.fehler;
+  }
+});
+
+document.getElementById("btn-abmelden").addEventListener("click", async () => {
+  await senden("/api/auth/abmelden", {});
+  authZustand = await holen("/api/auth/status");
+  anmeldungZeigen();
+});
 
 // --- Status ------------------------------------------------------------
 const meldung = document.getElementById("status-meldung");
@@ -307,15 +399,21 @@ document.getElementById("btn-standard").addEventListener("click", () => {
 });
 
 // Startwerte aus der Server-Konfiguration übernehmen.
-holen("/api/vram").then((daten) => {
-  if (daten.ok) {
-    rParallel.value = daten.standard.parallel;
-    rKontext.value = daten.standard.kontext;
-  }
-  berechnen();
-});
+function starten() {
+  if (starten.gelaufen) return;
+  starten.gelaufen = true;
+  holen("/api/vram").then((daten) => {
+    if (daten.ok) {
+      rParallel.value = daten.standard.parallel;
+      rKontext.value = daten.standard.kontext;
+    }
+    berechnen();
+  });
+  statusLaden();
+  setInterval(statusLaden, 30000);
+}
+
 holen("/healthz").then((d) => {
   document.getElementById("fuss-version").textContent = d.version || "?";
 });
-statusLaden();
-setInterval(statusLaden, 30000);
+authPruefen();

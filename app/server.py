@@ -5,7 +5,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import config, dockerctl, ollama, vram
+from . import auth, config, dockerctl, nutzung, ollama, vram
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -21,17 +21,19 @@ MAX_RUMPF = 64 * 1024
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ModellPortal/1.1"
+    server_version = "ModellPortal/1.3"
     protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt, *args):  # kompaktes Log-Format
         print(f"{self.address_string()} {fmt % args}", flush=True)
 
     # -- Hilfsfunktionen -------------------------------------------------
-    def _send(self, status, body, content_type):
+    def _send(self, status, body, content_type, cookie=None):
         if isinstance(body, str):
             body = body.encode("utf-8")
         self.send_response(status)
+        if cookie is not None:
+            self._setze_cookie(*cookie)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
@@ -39,9 +41,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
-    def _json(self, daten, status=200):
+    def _json(self, daten, status=200, cookie=None):
         self._send(status, json.dumps(daten, ensure_ascii=False, indent=2),
-                   "application/json; charset=utf-8")
+                   "application/json; charset=utf-8", cookie=cookie)
 
     def _fehler(self, meldung, status=400):
         self._json({"ok": False, "fehler": meldung}, status)
@@ -55,16 +57,39 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError("Anfrage ist zu gross")
         return json.loads(self.rfile.read(laenge).decode("utf-8"))
 
+    def _sitzung(self):
+        """Liest das Sitzungs-Token aus dem Cookie der Anfrage."""
+        rohcookie = self.headers.get("Cookie", "")
+        for teil in rohcookie.split(";"):
+            name, _, wert = teil.strip().partition("=")
+            if name == "portal_sitzung":
+                return wert
+        return ""
+
+    def _angemeldet(self):
+        return auth.gueltig(self._sitzung())
+
+    def _adresse(self):
+        return self.client_address[0] if self.client_address else "unbekannt"
+
     def _darf_schreiben(self):
-        """Prueft Freischaltung und - falls gesetzt - das Steuer-Token."""
+        """Prueft Anmeldung und Freischaltung der Steuerung."""
+        if not self._angemeldet():
+            self._fehler("Nicht angemeldet.", 401)
+            return False
         if not config.DOCKER_STEUERUNG:
             self._fehler("Die Steuerung ist deaktiviert (DOCKER_STEUERUNG=false).", 403)
             return False
-        if config.STEUER_TOKEN and \
-                self.headers.get("X-Portal-Token", "") != config.STEUER_TOKEN:
-            self._fehler("Falsches oder fehlendes Token.", 401)
-            return False
         return True
+
+    def _setze_cookie(self, token, dauer):
+        """Sitzungs-Cookie setzen oder loeschen (dauer=0)."""
+        # HttpOnly: kein Zugriff aus JavaScript. Kein Secure-Flag, weil das
+        # Portal im internen Netz ueber http ausgeliefert wird.
+        self.send_header(
+            "Set-Cookie",
+            f"portal_sitzung={token}; HttpOnly; Path=/; SameSite=Strict; "
+            f"Max-Age={int(dauer)}")
 
     def _static(self, name):
         pfad = os.path.join(STATIC_DIR, name)
@@ -90,6 +115,8 @@ class Handler(BaseHTTPRequestHandler):
             self._static("index.html")
         elif pfad == "/betrieb":
             self._static("betrieb.html")
+        elif pfad == "/uebersicht":
+            self._static("uebersicht.html")
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
             self._json({"status": "ok", "version": config.VERSION,
@@ -116,6 +143,12 @@ class Handler(BaseHTTPRequestHandler):
             self._docker_logs(parameter)
         elif pfad == "/api/vram":
             self._vram(parameter)
+        elif pfad == "/api/nutzung":
+            self._nutzung()
+        elif pfad == "/api/auth/status":
+            self._json({"ok": True, "angemeldet": self._angemeldet(),
+                        "steuerungAktiv": config.DOCKER_STEUERUNG,
+                        **auth.zustand()})
         else:
             self._static(pfad.lstrip("/"))
 
@@ -136,6 +169,11 @@ class Handler(BaseHTTPRequestHandler):
                         "container": config.CONTAINER_NAME}, 200)
 
     def _docker_logs(self, parameter):
+        # Logs koennen Adressen und Fehlermeldungen enthalten und bleiben
+        # daher der Einstellungsseite vorbehalten.
+        if not self._angemeldet():
+            self._fehler("Nicht angemeldet.", 401)
+            return
         try:
             zeilen = int((parameter.get("zeilen") or ["200"])[0])
         except ValueError:
@@ -175,6 +213,21 @@ class Handler(BaseHTTPRequestHandler):
                         "maxKontext": vram.MAX_KONTEXT},
         })
 
+    def _nutzung(self):
+        """Slot-Auslastung aus den Zugriffslogs des Ollama-Containers."""
+        try:
+            zustand = dockerctl.status(mit_statistik=False)
+            slots = int(zustand["einstellungen"].get("OLLAMA_NUM_PARALLEL")
+                        or config.STANDARD_PARALLEL)
+            logtext = dockerctl.logs(config.LOG_ZEILEN)
+        except dockerctl.DockerFehler as fehler:
+            self._json({"ok": False, "fehler": str(fehler)}, 200)
+            return
+        except (KeyError, ValueError):
+            slots = config.STANDARD_PARALLEL
+            logtext = ""
+        self._json(nutzung.auswerten(logtext, slots))
+
     # -- Schreibende Routen ----------------------------------------------
     def do_POST(self):
         pfad = urlparse(self.path).path.rstrip("/") or "/"
@@ -188,8 +241,48 @@ class Handler(BaseHTTPRequestHandler):
             self._docker_aktion(rumpf)
         elif pfad == "/api/docker/einstellungen":
             self._einstellungen(rumpf)
+        elif pfad == "/api/auth/einrichten":
+            self._auth_einrichten(rumpf)
+        elif pfad == "/api/auth/anmelden":
+            self._auth_anmelden(rumpf)
+        elif pfad == "/api/auth/abmelden":
+            auth.abmelden(self._sitzung())
+            self._json({"ok": True}, cookie=("", 0))
+        elif pfad == "/api/auth/passwort":
+            self._auth_passwort(rumpf)
         else:
             self._fehler("Unbekannter Endpunkt", 404)
+
+    def _auth_einrichten(self, rumpf):
+        try:
+            auth.einrichten(rumpf.get("passwort", ""))
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+            return
+        # Nach der Ersteinrichtung direkt angemeldet sein.
+        token = auth.anmelden(rumpf.get("passwort", ""), self._adresse())
+        self._json({"ok": True}, cookie=(token, config.SITZUNGSDAUER))
+
+    def _auth_anmelden(self, rumpf):
+        try:
+            token = auth.anmelden(rumpf.get("passwort", ""), self._adresse())
+        except PermissionError as fehler:
+            self._fehler(str(fehler), 401)
+            return
+        self._json({"ok": True}, cookie=(token, config.SITZUNGSDAUER))
+
+    def _auth_passwort(self, rumpf):
+        if not self._angemeldet():
+            self._fehler("Nicht angemeldet.", 401)
+            return
+        try:
+            auth.passwort_aendern(rumpf.get("alt", ""), rumpf.get("neu", ""))
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+            return
+        # Das Aendern beendet alle Sitzungen - auch die eigene.
+        self._json({"ok": True, "hinweis": "Bitte neu anmelden."},
+                   cookie=("", 0))
 
     def _docker_aktion(self, rumpf):
         if not self._darf_schreiben():
@@ -241,6 +334,13 @@ def main():
     print(f"Ollama-Container: {config.CONTAINER_NAME} "
           f"(Steuerung {'aktiv' if config.DOCKER_STEUERUNG else 'deaktiviert'})",
           flush=True)
+    if auth.per_umgebung():
+        print("Passwort per PORTAL_PASSWORT vorgegeben", flush=True)
+    elif auth.eingerichtet():
+        print("Passwort ist eingerichtet", flush=True)
+    else:
+        print("Noch kein Passwort gesetzt - wird beim ersten Aufruf von "
+              "/betrieb abgefragt", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

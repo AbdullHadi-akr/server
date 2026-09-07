@@ -200,3 +200,12 @@ pre.log, pre.formel {
 }
 pre.log { max-height: 420px; white-space: pre-wrap; word-break: break-word; }
 ul.protokoll { color: var(--gedaempft); font-size: 14px; margin: 12px 0; padding-left: 20px; }
+
+/* --- Anmeldung -------------------------------------------------------- */
+.regler input[type="password"] {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 9px 12px; font-size: 15px; max-width: 340px;
+}
+.regler input[type="password"]:focus { outline: 2px solid var(--akzent); outline-offset: 1px; }
+#anmeldung .regler { max-width: 480px; }

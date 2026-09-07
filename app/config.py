@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "1.2 (Betriebsseite)"
+VERSION = "1.3 (Uebersicht und Passwortschutz)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server).
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://AZEU-DEW-DEVGPU-02:5020").rstrip("/")
@@ -37,8 +37,20 @@ DOCKER_TIMEOUT = float(os.environ.get("DOCKER_TIMEOUT", "20"))
 DOCKER_STEUERUNG = os.environ.get("DOCKER_STEUERUNG", "true").lower() in (
     "1", "true", "yes", "ja")
 
-# Optionales Passwort fuer schreibende Aktionen. Leer = kein Schutz.
-STEUER_TOKEN = os.environ.get("STEUER_TOKEN", "")
+# --- Anmeldung an der Einstellungsseite ------------------------------------
+# Verzeichnis fuer dauerhafte Daten (Passwort-Hash). Muss als Volume
+# eingebunden sein, sonst ist das Passwort nach einem Neustart weg.
+DATEN_DIR = os.environ.get("DATEN_VERZEICHNIS", "/data")
+
+# Optional fest vorgegebenes Passwort. Ist es gesetzt, entfaellt die
+# Ersteinrichtung im Browser und das Passwort laesst sich dort nicht aendern.
+PORTAL_PASSWORT = os.environ.get("PORTAL_PASSWORT", "")
+
+# Gueltigkeit einer Anmeldung in Sekunden (verlaengert sich bei Nutzung).
+SITZUNGSDAUER = float(os.environ.get("SITZUNGSDAUER", "28800"))
+
+# So viele Log-Zeilen wertet die Auslastungsanzeige aus.
+LOG_ZEILEN = int(os.environ.get("LOG_ZEILEN", "4000"))
 
 # --- GPU --------------------------------------------------------------------
 GPU_NAME = os.environ.get("GPU_NAME", "NVIDIA A100")
