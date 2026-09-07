@@ -191,3 +191,27 @@ def live(proc_ausgabe, port, slots, eigene_adresse=""):
         "eigene": gezaehlt["eigene"],
         "port": port,
     }
+
+
+def neue_anfragen(logtext, letzte_bekannte=0.0):
+    """Anfragen, die seit dem zuletzt gesehenen Eintrag hinzugekommen sind.
+
+    Der Verlauf zaehlt so ohne Doppelungen: Statt die Uhr des Portals mit der
+    des Containers abzugleichen, merkt sich der Aufrufer den Zeitstempel des
+    juengsten bereits gezaehlten Eintrags und bekommt nur Neueres.
+    """
+    alle = _anfragen(logtext)
+    if not alle:
+        return {"anzahl": 0, "medianSekunden": 0.0, "fehler": 0,
+                "letzte": letzte_bekannte}
+    neue = [a for a in alle if a["ende"] > letzte_bekannte]
+    juengste = max(a["ende"] for a in alle)
+    if not neue:
+        return {"anzahl": 0, "medianSekunden": 0.0, "fehler": 0, "letzte": juengste}
+    dauern = sorted(a["dauer"] for a in neue)
+    return {
+        "anzahl": len(neue),
+        "medianSekunden": round(dauern[len(dauern) // 2], 1),
+        "fehler": sum(1 for a in neue if a["status"] >= 400),
+        "letzte": juengste,
+    }

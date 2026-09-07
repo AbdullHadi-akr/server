@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "1.8 (Modellverwaltung)"
+VERSION = "1.9 (Verlauf)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -54,6 +54,13 @@ SITZUNGSDAUER = float(os.environ.get("SITZUNGSDAUER", "28800"))
 
 # So viele Log-Zeilen wertet die Auslastungsanzeige aus.
 LOG_ZEILEN = int(os.environ.get("LOG_ZEILEN", "4000"))
+
+# --- Verlauf ----------------------------------------------------------------
+# Aufzeichnung der Messwerte in /data/verlauf.sqlite.
+VERLAUF_AKTIV = os.environ.get("VERLAUF_AKTIV", "true").lower() in (
+    "1", "true", "yes", "ja")
+VERLAUF_TAKT = int(os.environ.get("VERLAUF_TAKT", "60"))
+VERLAUF_TAGE = int(os.environ.get("VERLAUF_TAGE", "30"))
 
 # --- GPU --------------------------------------------------------------------
 GPU_NAME = os.environ.get("GPU_NAME", "NVIDIA A100")

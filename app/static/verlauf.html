@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verlauf – Auslastung über die Zeit</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav class="navi">
+      <a href="/">Einrichtung</a>
+      <a href="/uebersicht">Übersicht</a>
+      <a href="/verlauf" class="aktiv">Verlauf</a>
+      <a href="/betrieb">Einstellungen</a>
+    </nav>
+    <h1>Verlauf</h1>
+    <p class="lead">
+      Auslastung, Speicher und Anfragen über die Zeit – die Grundlage für die
+      Frage, ob Slots und GPU noch reichen.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="knopfleiste" role="group" aria-label="Zeitraum">
+    <button class="zeitraum" data-zeitraum="1h">1 Stunde</button>
+    <button class="zeitraum aktiv" data-zeitraum="24h">24 Stunden</button>
+    <button class="zeitraum" data-zeitraum="7t">7 Tage</button>
+    <button class="zeitraum" data-zeitraum="30t">30 Tage</button>
+    <button id="btn-tabelle">Tabelle anzeigen</button>
+    <span id="verlauf-status" class="status"></span>
+  </div>
+
+  <section id="kennzahlen" class="kacheln"></section>
+
+  <section>
+    <h2>Belegte Slots</h2>
+    <p class="hinweis" id="slots-erklaerung"></p>
+    <div class="diagramm" id="d-slots"></div>
+  </section>
+
+  <section>
+    <h2>GPU-Speicher</h2>
+    <div class="diagramm" id="d-vram"></div>
+  </section>
+
+  <section>
+    <h2>Anfragen</h2>
+    <div class="diagramm" id="d-anfragen"></div>
+  </section>
+
+  <section>
+    <h2>Antwortzeit (Median)</h2>
+    <div class="diagramm" id="d-antwort"></div>
+  </section>
+
+  <section id="tabellen-bereich" hidden>
+    <h2>Messwerte</h2>
+    <div class="tabellenhuelle"><table class="modelle" id="verlauf-tabelle"></table></div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Version <span id="fuss-version">…</span> · <span id="fuss-info"></span></p>
+</footer>
+
+<script src="/verlauf.js"></script>
+</body>
+</html>

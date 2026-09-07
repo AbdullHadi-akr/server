@@ -10,7 +10,8 @@ prüft auf Knopfdruck, ob Ollama korrekt läuft und die Modelle sauber antworten
 | Seite | Zugang | Inhalt |
 |-------|--------|--------|
 | `/` | offen | Anleitung zur Einbindung in VS Code, Funktionsprüfung |
-| `/uebersicht` | offen, nur lesend | Dienst-Status, GPU-Speicher, Modelle, Slot-Auslastung |
+| `/uebersicht` | offen, nur lesend | Dienst-Status, GPU, Modelle, Slot-Auslastung |
+| `/verlauf` | offen, nur lesend | Auslastung, Speicher und Anfragen über Tage und Wochen |
 | `/betrieb` | **Passwort** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
 
 ## Starten
@@ -58,6 +59,9 @@ Alles über Umgebungsvariablen:
 | `DATEN_VERZEICHNIS` | `/data`                             | Ablage des Passwort-Hashes. |
 | `SITZUNGSDAUER`     | `28800`                             | Gültigkeit einer Anmeldung in Sekunden. |
 | `LOG_ZEILEN`        | `4000`                              | Log-Zeilen für die Auslastungsanalyse. |
+| `VERLAUF_AKTIV`     | `true`                              | Aufzeichnung des Verlaufs. |
+| `VERLAUF_TAKT`      | `60`                                | Sekunden zwischen zwei Messpunkten. |
+| `VERLAUF_TAGE`      | `30`                                | Aufbewahrung der Messpunkte. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
 | `GPU_VRAM_GIB`      | `80`                                | Rückfallwert, falls `nvidia-smi` nicht erreichbar ist. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
@@ -225,6 +229,26 @@ Maximaldauer sowie Fehler.
 Ist die Live-Messung nicht möglich (kein Docker-Socket, `exec` untersagt), sagt
 die Seite das und der Rückblick funktioniert unabhängig davon weiter.
 
+## Verlaufsseite (`/verlauf`)
+
+Ein Hintergrund-Thread schreibt alle `VERLAUF_TAKT` Sekunden einen Messpunkt in
+`/data/verlauf.sqlite` (im vorhandenen Volume): belegte Slots, verfügbare Slots,
+geladene Modelle, VRAM, GPU-Auslastung, abgeschlossene Anfragen, Median-Antwortzeit
+und Fehler. Die Seite zeigt daraus vier Kurven für 1 Stunde, 24 Stunden, 7 oder
+30 Tage, dazu Kennzahlen und auf Wunsch die Messwerte als Tabelle.
+
+- Zeiträume über einer Stunde werden in der SQL-Abfrage zu Stunden- bzw.
+  6-Stunden-Mitteln verdichtet, damit die Diagramme nicht Tausende Punkte zeichnen.
+- Anfragen werden ohne Doppelzählung erfasst: Statt Uhren abzugleichen, merkt sich
+  die Aufzeichnung den Zeitstempel des jüngsten bereits gezählten Logeintrags.
+- Aufgeräumt wird stündlich; Messpunkte älter als `VERLAUF_TAGE` fallen weg.
+- Die Diagramme sind selbst gezeichnetes SVG – keine externe Bibliothek, weil das
+  Portal ohne Internetzugang läuft.
+- Fällt eine Quelle aus (kein Docker-Socket, Ollama nicht erreichbar), wird der
+  Messpunkt trotzdem geschrieben; die fehlenden Felder bleiben leer.
+
+Mit `VERLAUF_AKTIV=false` lässt sich die Aufzeichnung ganz abschalten.
+
 ## Modellverwaltung
 
 Auf der Einstellungsseite, hinter der Anmeldung. Erspart den Weg über SSH auf
@@ -311,6 +335,8 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 | `GET /api/vram`          | VRAM-Schätzung (`?parallel=…&kontext=…&kv=…&modelle=…`). |
 | `GET /api/gpu`           | Gemessene GPU-Werte via `nvidia-smi`. |
 | `GET /api/pruefung`      | Hinweise auf unstimmige Einstellungen. |
+| `GET /verlauf`           | Verlaufsseite. |
+| `GET /api/verlauf`       | Messreihen (`?zeitraum=1h\|24h\|7t\|30t`). |
 | `GET /api/modelle/liste` | Installierte Modelle und Plattenbelegung. |
 | `GET /api/modelle/fortschritt` | Stand eines laufenden `pull`. |
 | `POST /api/modelle/laden` \| `/loeschen` | Modell nachladen bzw. entfernen. |
@@ -347,9 +373,10 @@ app/
   gpu.py        Echte GPU-Werte über nvidia-smi im Ollama-Container
   pruefung.py   Plausibilitätsprüfung von Konfiguration und Messwerten
   modelle.py    Modelle auflisten, nachladen (Strom-Fortschritt), löschen
+  verlauf.py    Aufzeichnung der Messwerte in SQLite, Verdichtung, Aufräumen
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
-  static/       index.html, uebersicht.html, betrieb.html,
-                style.css, app.js, uebersicht.js, betrieb.js
+  static/       index.html, uebersicht.html, verlauf.html, betrieb.html,
+                style.css und je Seite eine .js-Datei
 Dockerfile
 docker-compose.yml
 ```

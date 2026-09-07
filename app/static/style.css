@@ -245,3 +245,49 @@ table.modelle button { padding: 5px 10px; font-size: 13px; }
   background: var(--flaeche); border: 1px solid var(--rand);
   border-radius: 10px; overflow-x: auto;
 }
+
+/* --- Diagramme -------------------------------------------------------- */
+/* Farbrollen: eine Datenreihe je Diagramm, daher keine Legende noetig.
+   Dunkle Werte stehen wie im uebrigen Portal in :root, helle im Media-Block. */
+:root {
+  --serie: #3987e5;
+  --serie-wash: rgba(57, 135, 229, 0.14);
+  --serie-kritisch: #d03b3b;
+  --gitter: #262b38;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --serie: #2a78d6;
+    --serie-wash: rgba(42, 120, 214, 0.12);
+    --gitter: #dfe3ec;
+  }
+}
+
+.diagramm {
+  position: relative;
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: 10px; padding: 12px 14px 6px;
+}
+.diagramm svg { display: block; width: 100%; }
+.diagramm .leer { color: var(--gedaempft); font-size: 14px; padding: 24px 0; text-align: center; }
+.diagramm .achse { fill: var(--gedaempft); font-size: 11px; }
+.diagramm .wertlabel { fill: var(--text); font-size: 12px; font-weight: 600; }
+.diagramm .gitterlinie { stroke: var(--gitter); stroke-width: 1; }
+.diagramm .referenz { stroke: var(--gedaempft); stroke-width: 1; stroke-dasharray: 4 4; }
+
+.spitzenmarke {
+  position: absolute; pointer-events: none; opacity: 0;
+  background: var(--bg); border: 1px solid var(--rand);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); transition: opacity 0.1s;
+  white-space: nowrap; z-index: 5;
+}
+.spitzenmarke .zeit { color: var(--gedaempft); font-size: 12px; }
+.spitzenmarke .wert { font-weight: 600; }
+
+.kacheln { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top: 20px; }
+.kachel { background: var(--flaeche); border: 1px solid var(--rand); border-radius: 10px; padding: 14px 16px; }
+.kachel .beschriftung { color: var(--gedaempft); font-size: 13px; }
+.kachel .zahl { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 2px; }
+.kachel .zusatz { color: var(--gedaempft); font-size: 12px; }
+button.zeitraum.aktiv { background: var(--akzent); border-color: var(--akzent); color: #fff; }

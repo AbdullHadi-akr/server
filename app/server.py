@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import (auth, config, dockerctl, gpu, modelle, nutzung, ollama,
-               pruefung, vram)
+               pruefung, verlauf, vram)
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -118,6 +118,8 @@ class Handler(BaseHTTPRequestHandler):
             self._static("betrieb.html")
         elif pfad == "/uebersicht":
             self._static("uebersicht.html")
+        elif pfad == "/verlauf":
+            self._static("verlauf.html")
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
             self._json({"status": "ok", "version": config.VERSION,
@@ -152,6 +154,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": True, **modelle.fortschritt()})
         elif pfad == "/api/modelle/details":
             self._json(modelle.details((parameter.get("name") or [""])[0]))
+        elif pfad == "/api/verlauf":
+            self._json(verlauf.lesen((parameter.get("zeitraum") or ["24h"])[0]))
         elif pfad == "/api/gpu":
             self._json({"ok": True, **gpu.werte()})
         elif pfad == "/api/pruefung":
@@ -407,6 +411,60 @@ class Handler(BaseHTTPRequestHandler):
         self._json(ergebnis)
 
 
+def _messwerte(letzte_anfrage):
+    """Liefert dem Verlauf einen Satz Rohdaten - fehlertolerant.
+
+    Faellt eine Quelle aus (kein Docker-Socket, Ollama nicht erreichbar), wird
+    der Messpunkt trotzdem geschrieben; die fehlenden Felder bleiben null.
+    """
+    werte = {"letzteAnfrage": letzte_anfrage}
+
+    parallel = config.STANDARD_PARALLEL
+    umgebung = {}
+    try:
+        zustand = dockerctl.status(mit_statistik=False)
+        umgebung = zustand.get("einstellungen", {})
+        parallel = int(umgebung.get("OLLAMA_NUM_PARALLEL") or parallel)
+    except (dockerctl.DockerFehler, ValueError, TypeError):
+        zustand = None
+
+    geladen = ollama.geladene_modelle()
+    anzahl = len(geladen.get("modelle", [])) if geladen.get("ok") else 0
+    werte["modelle"] = anzahl
+    werte["slots"] = parallel * max(1, anzahl)
+
+    gpu_daten = gpu.werte()
+    if gpu_daten.get("gemessen"):
+        werte["vramBelegt"] = gpu_daten.get("vramBelegtGib", 0.0)
+        werte["vramGesamt"] = gpu_daten.get("vramGib", 0.0)
+        werte["gpuLast"] = (gpu_daten["gpus"][0].get("auslastung") or 0.0
+                            if gpu_daten["gpus"] else 0.0)
+    else:
+        werte["vramBelegt"] = geladen.get("summeGib", 0.0) if geladen.get("ok") else 0.0
+        werte["vramGesamt"] = config.GPU_VRAM_GIB
+
+    if zustand is not None:
+        try:
+            port = 11434
+            host = umgebung.get("OLLAMA_HOST", "")
+            if ":" in host:
+                port = int(host.rsplit(":", 1)[1])
+            ausgabe = dockerctl.ausfuehren(["cat", "/proc/net/tcp", "/proc/net/tcp6"])
+            live = nutzung.live(ausgabe, port, werte["slots"],
+                                ollama.eigene_adresse())
+            werte["aktiv"] = live["aktiv"]
+        except (dockerctl.DockerFehler, ValueError):
+            pass
+        try:
+            neue = nutzung.neue_anfragen(dockerctl.logs(config.LOG_ZEILEN),
+                                         letzte_anfrage)
+            werte.update({"anfragen": neue["anzahl"], "medianS": neue["medianSekunden"],
+                          "fehler": neue["fehler"], "letzteAnfrage": neue["letzte"]})
+        except dockerctl.DockerFehler:
+            pass
+    return werte
+
+
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
@@ -426,6 +484,9 @@ def main():
     else:
         print("Noch kein Passwort gesetzt - wird beim ersten Aufruf von "
               "/betrieb abgefragt", flush=True)
+    if verlauf.starten(_messwerte):
+        print(f"Verlauf: Aufzeichnung alle {config.VERLAUF_TAKT} s, "
+              f"Aufbewahrung {config.VERLAUF_TAGE} Tage", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
