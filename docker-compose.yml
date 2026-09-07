@@ -12,6 +12,28 @@ services:
       # Adresse, die den Nutzern in der VS-Code-Konfiguration gezeigt wird.
       PUBLIC_OLLAMA_URL: "http://AZEU-DEW-DEVGPU-02:5020"
       VENDOR_NAME: "A100"
+
+      # Name des Containers, in dem Ollama laeuft (fuer die Betriebsseite).
+      OLLAMA_CONTAINER: "ollama"
+      # Auf "false" setzen, um die Betriebsseite auf Nur-Lesen zu beschraenken.
+      DOCKER_STEUERUNG: "true"
+      # Optionales Passwort fuer Neustart und Einstellungsaenderungen.
+      # STEUER_TOKEN: "bitte-aendern"
+
+      # GPU-Ausstattung fuer den VRAM-Rechner.
+      GPU_NAME: "NVIDIA A100"
+      GPU_VRAM_GIB: "80"
+      # Aktuell im Ollama-Container gesetzte Werte.
+      STANDARD_PARALLEL: "4"
+      STANDARD_KONTEXT: "50000"
+    volumes:
+      # Noetig fuer Status, Neustart und das Uebernehmen von Einstellungen.
+      # Nur-Lesen genuegt nicht - Neustarts sind schreibende Aufrufe.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # GID der Gruppe "docker" auf dem Host; ermittelbar mit
+    # 'getent group docker'. Ohne passende GID verweigert der Socket den Zugriff.
+    group_add:
+      - "999"
     # Noetig, wenn Ollama auf dem Docker-Host selbst laeuft und ueber
     # host.docker.internal erreicht werden soll.
     extra_hosts:

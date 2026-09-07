@@ -21,6 +21,29 @@ HOST = os.environ.get("HOST", "0.0.0.0")
 PROBE_TIMEOUT = float(os.environ.get("PROBE_TIMEOUT", "10"))
 CHAT_TIMEOUT = float(os.environ.get("CHAT_TIMEOUT", "300"))
 
+# --- Steuerung des Ollama-Containers ---------------------------------------
+# Name (oder ID) des Containers, in dem Ollama laeuft. Kommt bewusst nur aus
+# der Umgebung und nie aus der Anfrage des Browsers.
+CONTAINER_NAME = os.environ.get("OLLAMA_CONTAINER", "ollama")
+DOCKER_SOCKET = os.environ.get("DOCKER_SOCKET", "/var/run/docker.sock")
+DOCKER_TIMEOUT = float(os.environ.get("DOCKER_TIMEOUT", "20"))
+
+# Schreibende Aktionen (Start/Stopp/Neustart, Einstellungen uebernehmen).
+# Auf "false" setzen, um die Betriebsseite auf Nur-Lesen zu beschraenken.
+DOCKER_STEUERUNG = os.environ.get("DOCKER_STEUERUNG", "true").lower() in (
+    "1", "true", "yes", "ja")
+
+# Optionales Passwort fuer schreibende Aktionen. Leer = kein Schutz.
+STEUER_TOKEN = os.environ.get("STEUER_TOKEN", "")
+
+# --- GPU --------------------------------------------------------------------
+GPU_NAME = os.environ.get("GPU_NAME", "NVIDIA A100")
+GPU_VRAM_GIB = float(os.environ.get("GPU_VRAM_GIB", "80"))
+
+# Standardwerte, wie sie aktuell im Ollama-Container gesetzt sind.
+STANDARD_PARALLEL = int(os.environ.get("STANDARD_PARALLEL", "4"))
+STANDARD_KONTEXT = int(os.environ.get("STANDARD_KONTEXT", "50000"))
+
 MODELS = [
     {
         "id": "qwen3:30b-a3b",

@@ -137,3 +137,66 @@ dl.hilfe dt, #hilfe dt { font-weight: 600; margin-top: 14px; }
 #hilfe dd { margin: 4px 0 0; color: var(--gedaempft); }
 
 footer { color: var(--gedaempft); font-size: 14px; border-top: 1px solid var(--rand); margin-top: 48px; padding: 20px 24px 40px; }
+
+/* --- Navigation ------------------------------------------------------- */
+.navi { display: flex; gap: 8px; margin-bottom: 20px; }
+.navi a {
+  color: #c6cede; text-decoration: none;
+  padding: 6px 14px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 14px;
+}
+.navi a:hover { border-color: var(--akzent); }
+.navi a.aktiv { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+
+/* --- Betriebsseite ---------------------------------------------------- */
+.kartenkopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.abzeichen {
+  border-radius: 999px; padding: 3px 12px;
+  font-size: 13px; font-weight: 600; text-transform: lowercase;
+}
+.abzeichen.ok { background: rgba(63, 178, 127, 0.18); color: var(--gut); }
+.abzeichen.fehler { background: rgba(229, 96, 107, 0.18); color: var(--schlecht); }
+.abzeichen.neutral { background: rgba(154, 163, 181, 0.18); color: var(--gedaempft); }
+
+.karte.flach { margin-top: 12px; }
+.karte h4 { margin: 0 0 8px; font-size: 14px; color: var(--akzent); }
+dl.eng { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: 14px; }
+dl.eng dt { color: var(--gedaempft); white-space: nowrap; }
+dl.eng dd { margin: 0; word-break: break-word; }
+.unterkarte { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rand); }
+.karte .detail { color: var(--gedaempft); font-size: 14px; }
+.karte .tipp { color: var(--warn); font-size: 14px; }
+
+.regler {
+  display: grid; gap: 6px 20px;
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: 10px; padding: 18px; margin: 16px 0;
+}
+.regler label { font-size: 14px; color: var(--gedaempft); margin-top: 8px; }
+.regler output { color: var(--text); font-weight: 600; font-size: 16px; }
+.regler input[type="range"] { width: 100%; accent-color: var(--akzent); }
+.regler select {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 8px 10px; font-size: 15px; max-width: 420px;
+}
+
+.vram-kopf { margin: 20px 0 8px; }
+.grosszahl { font-size: 34px; font-weight: 700; line-height: 1.1; }
+.grosszahl.warn { color: var(--schlecht); }
+.balken {
+  height: 14px; border-radius: 999px; overflow: hidden;
+  background: var(--flaeche); border: 1px solid var(--rand);
+}
+.balken .fuellung { height: 100%; transition: width 0.2s ease; }
+.balken .fuellung.ok { background: linear-gradient(90deg, var(--gut), var(--akzent)); }
+.balken .fuellung.fehler { background: var(--schlecht); }
+
+pre.log, pre.formel {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: 8px; padding: 16px; margin: 0;
+  font-size: 12.5px; line-height: 1.5; overflow: auto;
+}
+pre.log { max-height: 420px; white-space: pre-wrap; word-break: break-word; }
+ul.protokoll { color: var(--gedaempft); font-size: 14px; margin: 12px 0; padding-left: 20px; }

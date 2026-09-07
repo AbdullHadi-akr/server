@@ -335,3 +335,29 @@ def _tool_test(model_id):
                      "scheitern, in der chatLanguageModels.json "
                      "\"toolCalling\": false setzen."),
     }
+
+
+def geladene_modelle():
+    """Fragt ueber /api/ps ab, welche Modelle gerade im Speicher liegen.
+
+    Ollama meldet dabei den tatsaechlich belegten VRAM - das ist die
+    Gegenprobe zur Schaetzung auf der Betriebsseite.
+    """
+    antwort = _request("GET", "/api/ps")
+    if not antwort["ok"]:
+        return {"ok": False, "fehler": antwort.get("fehler", "unbekannter Fehler"),
+                "modelle": []}
+    modelle = []
+    for eintrag in (antwort.get("body") or {}).get("models", []):
+        vram = eintrag.get("size_vram") or 0
+        gesamt = eintrag.get("size") or 0
+        modelle.append({
+            "name": eintrag.get("name") or eintrag.get("model", "?"),
+            "vramGib": round(vram / 1024 ** 3, 2),
+            "gesamtGib": round(gesamt / 1024 ** 3, 2),
+            "nurGpu": bool(gesamt) and vram >= gesamt * 0.99,
+            "kontext": eintrag.get("context_length") or 0,
+            "laeuftBis": eintrag.get("expires_at", ""),
+        })
+    return {"ok": True, "modelle": modelle,
+            "summeGib": round(sum(m["vramGib"] for m in modelle), 2)}

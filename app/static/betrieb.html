@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Betrieb – Ollama-Container</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav class="navi">
+      <a href="/">Einrichtung in VS&nbsp;Code</a>
+      <a href="/betrieb" class="aktiv">Betrieb</a>
+    </nav>
+    <h1>Ollama-Container</h1>
+    <p class="lead">
+      Status des Containers, Neustart und die Auslegung von Nutzeranzahl und
+      Kontextlänge samt voraussichtlichem VRAM-Verbrauch.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="status">
+    <h2>Status</h2>
+    <div id="status-karte" class="karte">Lade Status …</div>
+    <div class="knopfleiste">
+      <button id="btn-neustart" class="primaer">Neu starten</button>
+      <button id="btn-start">Starten</button>
+      <button id="btn-stopp">Stoppen</button>
+      <button id="btn-logs">Logs anzeigen</button>
+      <button id="btn-aktualisieren">Aktualisieren</button>
+      <span id="status-meldung" class="status"></span>
+    </div>
+    <div id="log-bereich" hidden>
+      <div class="codebox">
+        <button class="kopieren" data-ziel="logtext">Kopieren</button>
+        <pre id="logtext" class="log"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="geladen">
+    <h2>Aktuell im GPU-Speicher</h2>
+    <p class="hinweis">
+      Von Ollama gemeldeter tatsächlicher Verbrauch (<code>/api/ps</code>) – die
+      Gegenprobe zur Schätzung weiter unten. Nach einem Neustart ist die Liste
+      leer, bis das erste Modell angefragt wird.
+    </p>
+    <div id="geladen-liste">Lade …</div>
+  </section>
+
+  <section id="rechner">
+    <h2>Auslegung: Nutzer, Kontext und VRAM</h2>
+    <p class="hinweis">
+      <strong>Nutzeranzahl</strong> entspricht <code>OLLAMA_NUM_PARALLEL</code> –
+      so viele Anfragen bearbeitet Ollama gleichzeitig. <strong>Kontext</strong>
+      entspricht <code>OLLAMA_CONTEXT_LENGTH</code> und gilt <em>je Nutzer</em>;
+      Ollama legt für jeden Slot einen eigenen KV-Cache an.
+    </p>
+
+    <div class="regler">
+      <label for="r-parallel">
+        Nutzeranzahl (parallel) <output id="a-parallel">4</output>
+      </label>
+      <input type="range" id="r-parallel" min="1" max="16" step="1" value="4">
+
+      <label for="r-kontext">
+        Kontext je Nutzer <output id="a-kontext">50 000</output> Token
+      </label>
+      <input type="range" id="r-kontext" min="4000" max="132000" step="1000" value="50000">
+
+      <label for="f-kv">KV-Cache-Datentyp</label>
+      <select id="f-kv">
+        <option value="f16" selected>f16 – Standard, höchste Qualität</option>
+        <option value="q8_0">q8_0 – halber KV-Speicher</option>
+        <option value="q4_0">q4_0 – viertel KV-Speicher</option>
+      </select>
+
+      <label for="f-modelle">Gleichzeitig geladene Modelle</label>
+      <select id="f-modelle">
+        <option value="1">1 Modell</option>
+        <option value="2" selected>2 Modelle (qwen3 und qwen3-coder)</option>
+      </select>
+    </div>
+
+    <div id="vram-anzeige">Berechne …</div>
+
+    <div class="knopfleiste">
+      <button id="btn-standard">Auf Standard zurücksetzen</button>
+      <button id="btn-uebernehmen" class="primaer">Einstellungen übernehmen</button>
+      <span id="uebernehmen-meldung" class="status"></span>
+    </div>
+    <p class="hinweis">
+      Docker kann die Umgebung eines laufenden Containers nicht ändern. Beim
+      Übernehmen wird der Container daher mit identischer Konfiguration, aber
+      neuen Werten neu erstellt – Volumes und heruntergeladene Modelle bleiben
+      erhalten. Der alte Container wird als Sicherung aufbewahrt, laufende
+      Anfragen brechen ab.
+    </p>
+    <div id="uebernehmen-ergebnis"></div>
+  </section>
+
+  <section id="formel">
+    <h2>Wie gerechnet wird</h2>
+    <pre class="formel">VRAM = Gewichte + KV-Cache + Rechenpuffer
+KV-Cache = 96 KiB/Token × Nutzeranzahl × Kontext × KV-Faktor</pre>
+    <p class="hinweis">
+      Die 96 KiB je Token ergeben sich aus dem Aufbau von qwen3-30b-a3b:
+      2 (K und V) × 4 KV-Heads × 128 Head-Dim × 48 Layer × 2 Byte (f16).
+      Die Gewichte belegen 17,3 GiB (Q4_K_M), der Rechenpuffer wächst leicht
+      mit der Slot-Zahl. Gegenprobe mit den gemessenen Werten: 4 Nutzer und
+      50 000 Token ergeben 37,0 GiB – gemessen wurden 37 GiB.
+    </p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Portal Port <strong>5021</strong> · Container <code id="fuss-container">…</code></p>
+</footer>
+
+<script src="/betrieb.js"></script>
+</body>
+</html>
