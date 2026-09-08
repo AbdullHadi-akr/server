@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS reservierungen (
 )
 """
 
+# Reserviert wird im Viertelstundenraster. Alle gebraeuchlichen Zeitzonen sind
+# um ein Vielfaches von 15 Minuten gegen UTC versetzt, deshalb laesst sich das
+# an der Unix-Zeit pruefen - unabhaengig von der Zone des Nutzers.
+RASTER_SEKUNDEN = 15 * 60
+
 _schloss = threading.Lock()
 _vorbereitet = False
 
@@ -173,6 +178,9 @@ def anlegen(benutzer_id, ist_admin, modell, start_text, ende_text, slots,
     ende = _zeitpunkt(ende_text)
     if ende <= start:
         raise ValueError("Das Ende muss nach dem Beginn liegen.")
+    if start % RASTER_SEKUNDEN or ende % RASTER_SEKUNDEN:
+        raise ValueError("Beginn und Ende muessen auf einer viertel Stunde "
+                         "liegen (:00, :15, :30, :45).")
     if ende <= time.time():
         raise ValueError("Das Zeitfenster liegt in der Vergangenheit.")
     dauer_stunden = (ende - start) / 3600

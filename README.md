@@ -319,6 +319,11 @@ haben**, weil die Auslastungsanalyse dessen Zugriffslog liest.
 
 **Regeln beim Anlegen**
 
+- Beginn und Ende liegen auf einer Viertelstunde. Das Formular bietet dafür
+  Auswahllisten in 15-Minuten-Schritten; der Server prüft es zusätzlich, denn
+  die Oberfläche ist keine Instanz. Ein „Bis" vor dem „Von" meint den Folgetag,
+  eine Reservierung von 23:00 bis 01:00 ist also möglich.
+
 - Höchstens `RESERVIERUNG_MAX_STUNDEN` (Standard 4) am Stück.
 - Keine Überbuchung: Die Summe überlappender Reservierungen eines Modells bleibt
   innerhalb von `OLLAMA_NUM_PARALLEL`.

@@ -15,6 +15,39 @@ function uhr(zeitstempel) {
     { hour: "2-digit", minute: "2-digit" });
 }
 
+// Reserviert wird im Viertelstundenraster - deshalb Auswahllisten statt
+// freier Zeitfelder. "24:00" beim Ende meint Mitternacht des Folgetages.
+const RASTER = 15;
+
+function zeitListen() {
+  const von = document.getElementById("f-von");
+  const bis = document.getElementById("f-bis");
+  if (von.options.length) return;
+
+  for (let minute = 0; minute < 24 * 60; minute += RASTER) {
+    von.appendChild(zeitOption(minute));
+  }
+  for (let minute = RASTER; minute <= 24 * 60; minute += RASTER) {
+    bis.appendChild(zeitOption(minute));
+  }
+
+  // Sinnvolle Vorbelegung: nächste volle Viertelstunde, eine Stunde lang.
+  const jetzt = new Date();
+  const start = (Math.floor((jetzt.getHours() * 60 + jetzt.getMinutes()) / RASTER)
+                 + 1) * RASTER;
+  von.value = String(Math.min(start, 23 * 60 + 45));
+  bis.value = String(Math.min(start + 60, 24 * 60));
+}
+
+function zeitOption(minute) {
+  const stunde = Math.floor(minute / 60);
+  const rest = minute % 60;
+  const eintrag = el("option", null,
+    String(stunde).padStart(2, "0") + ":" + String(rest).padStart(2, "0"));
+  eintrag.value = String(minute);
+  return eintrag;
+}
+
 function datumZeit(zeitstempel) {
   return new Date(zeitstempel * 1000).toLocaleString("de-DE",
     { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -143,6 +176,7 @@ async function laden() {
     });
     document.getElementById("f-datum").value = daten.tag;
   }
+  zeitListen();
   const grenze = daten.istAdmin ? daten.slots : daten.slots - daten.minFrei;
   document.getElementById("f-slots").max = grenze;
   document.getElementById("regeln").textContent =
@@ -178,13 +212,16 @@ document.getElementById("reservieren-formular").addEventListener("submit", async
   anzeige.textContent = "…";
   // Den Zeitstempel im Browser ausrechnen: Er kennt die Zeitzone des Nutzers.
   // Eine reine Wanduhrzeit wuerde der Server in seiner eigenen Zone deuten.
-  const alsZeitstempel = (zeit) =>
-    Math.floor(new Date(datum + "T" + zeit).getTime() / 1000);
+  const tagesBeginn = new Date(datum + "T00:00").getTime() / 1000;
+  const vonMinute = Number(document.getElementById("f-von").value);
+  let bisMinute = Number(document.getElementById("f-bis").value);
+  // Ein Ende vor dem Beginn meint den Folgetag (etwa 23:00 bis 01:00).
+  if (bisMinute <= vonMinute) bisMinute += 24 * 60;
 
   const antwort = await senden("/api/reservierungen/anlegen", {
     modell: document.getElementById("f-modell").value,
-    start: alsZeitstempel(document.getElementById("f-von").value),
-    ende: alsZeitstempel(document.getElementById("f-bis").value),
+    start: Math.floor(tagesBeginn + vonMinute * 60),
+    ende: Math.floor(tagesBeginn + bisMinute * 60),
     slots: Number(document.getElementById("f-slots").value),
     notiz: document.getElementById("f-notiz").value,
   });
