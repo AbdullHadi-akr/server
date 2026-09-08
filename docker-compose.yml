@@ -5,18 +5,17 @@ services:
     container_name: modell-portal
     restart: unless-stopped
     ports:
+      # Portal UND Modell-Anfragen: Was keine Portal-Route ist, reicht das
+      # Portal an Ollama weiter. Nur dieser eine Port muss offen sein.
       - "5021:5021"
-      # Proxy vor Ollama. Zeigt PUBLIC_OLLAMA_URL auf diesen Port, laufen die
-      # Anfragen durch das Portal und lassen sich je Modell zaehlen.
-      - "5022:5022"
     environment:
       # Adresse, unter der DAS PORTAL Ollama erreicht: Funktionspruefung,
       # Modelltests, Status und Auslastung laufen darueber.
       OLLAMA_URL: "http://AZEU-DEW-DEVGPU-02:5020"
       # Adresse, die den NUTZERN in der VS-Code-Konfiguration gezeigt wird.
-      # Sie zeigt auf den Proxy dieses Portals (Port 5022), damit die Anfragen
-      # durch das Portal laufen und je Modell gezaehlt werden koennen.
-      PUBLIC_OLLAMA_URL: "http://azeu-dew-devappl-01:5022"
+      # Sie zeigt auf das Portal selbst, damit die Anfragen durch das Portal
+      # laufen und je Modell gezaehlt werden koennen.
+      PUBLIC_OLLAMA_URL: "http://azeu-dew-devappl-01:5021"
       # Die vorherige Adresse - nur fuer den Umstellungshinweis auf der Seite.
       ALT_OLLAMA_URL: "http://azeu-dew-devappl-01:5020"
       VENDOR_NAME: "A100"
@@ -33,9 +32,12 @@ services:
       SITZUNGSDAUER: "28800"
 
       # Proxy-Modus. Auf "false" setzen, wenn das Portal nicht im Weg des
-      # Chat-Verkehrs stehen soll.
+      # Chat-Verkehrs stehen soll - dann tragen die Nutzer wieder den direkten
+      # Ollama-Port ein.
       PROXY_AKTIV: "true"
-      PROXY_PORT: "5022"
+      # Ohne Angabe laeuft der Proxy am Portal-Port. Ein abweichender Wert
+      # startet einen zweiten Listener und braucht einen weiteren Port.
+      # PROXY_PORT: "5022"
 
       # Verlaufsaufzeichnung.
       VERLAUF_AKTIV: "true"

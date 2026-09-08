@@ -22,7 +22,7 @@ docker compose up -d --build
 docker build -t modell-portal .
 docker run -d --name modell-portal -p 5021:5021 \
   -e OLLAMA_URL=http://AZEU-DEW-DEVGPU-02:5020 \
-  -e PUBLIC_OLLAMA_URL=http://azeu-dew-devappl-01:5022 \
+  -e PUBLIC_OLLAMA_URL=http://azeu-dew-devappl-01:5021 \
   modell-portal
 ```
 
@@ -49,7 +49,7 @@ Alles über Umgebungsvariablen:
 | Variable            | Standard                            | Bedeutung |
 |---------------------|-------------------------------------|-----------|
 | `OLLAMA_URL`        | `http://AZEU-DEW-DEVGPU-02:5020`    | Adresse, unter der **das Portal** Ollama erreicht: Prüfungen, Modelltests, Status, Auslastung. |
-| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5022`   | Adresse, die den **Nutzern** angezeigt wird – zeigt auf den Proxy des Portals. |
+| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5021`   | Adresse, die den **Nutzern** angezeigt wird – das Portal selbst. |
 | `ALT_OLLAMA_URL`    | `http://azeu-dew-devappl-01:5020`   | Vorherige Adresse, nur für den Umstellungshinweis. Leer = kein Hinweis. |
 | `VENDOR_NAME`       | `A100`                              | Name des Anbieter-Eintrags und Suffix der Modellnamen. |
 | `PORT` / `HOST`     | `5021` / `0.0.0.0`                  | Bindung des Portals. |
@@ -64,7 +64,7 @@ Alles über Umgebungsvariablen:
 | `VERLAUF_TAKT`      | `60`                                | Sekunden zwischen zwei Messpunkten. |
 | `VERLAUF_TAGE`      | `30`                                | Aufbewahrung der Messpunkte. |
 | `PROXY_AKTIV`       | `true`                              | Proxy vor Ollama. |
-| `PROXY_PORT`        | `5022`                              | Port des Proxys. |
+| `PROXY_PORT`        | wie `PORT`                          | Abweichender Wert startet einen zweiten Listener. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
 | `GPU_VRAM_GIB`      | `80`                                | Rückfallwert, falls `nvidia-smi` nicht erreichbar ist. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
@@ -236,32 +236,41 @@ die Seite das und der Rückblick funktioniert unabhängig davon weiter.
 
 Weder die Ollama-API noch das Zugriffslog verraten, welches Modell eine gerade
 laufende Anfrage belegt. Wer den Verkehr durch das Portal leitet, bekommt genau
-das. Der Proxy lauscht auf einem **eigenen Port** (Standard 5022) – Ollamas
-`/api/*` würde sich sonst mit den gleichnamigen Endpunkten des Portals
-überschneiden.
+das.
 
-Er reicht alle Pfade und Methoden an Ollama weiter, liest den Anfragerumpf (dort
-steht das Modell) und gibt die Antwort **ungepuffert** zurück, damit der Chat in
-VS Code weiter Wort für Wort erscheint. Daraus entsteht je Modell: laufende
-Anfragen, davon rechnend (bis `OLLAMA_NUM_PARALLEL`) und wartend. Die Übersicht
-zeigt das auf den Modellkarten, der Verlauf schreibt es mit.
+Der Proxy hängt **am selben Port wie das Portal** (5021): Was keine Portal-Route
+und keine statische Datei ist, geht an Ollama weiter. Das geht auf, weil sich die
+Pfade nicht überschneiden – das Portal benennt seine Endpunkte deutsch
+(`/api/nutzung`, `/api/verlauf`, `/api/geladen` …), Ollama englisch (`/api/chat`,
+`/api/tags`, `/api/ps` …). **Wer neue Portal-Endpunkte ergänzt, muss diese
+Trennung wahren.** So genügt ein einziger offener Port für Portal und Modelle.
+
+Er reicht alle Pfade und Methoden weiter, liest den Anfragerumpf (dort steht das
+Modell) und gibt die Antwort **ungepuffert** zurück, damit der Chat in VS Code
+weiter Wort für Wort erscheint. Daraus entsteht je Modell: laufende Anfragen,
+davon rechnend (bis `OLLAMA_NUM_PARALLEL`) und wartend. Die Übersicht zeigt das
+auf den Modellkarten, der Verlauf schreibt es mit.
+
+Ist eine strikte Trennung gewünscht, startet ein abweichender `PROXY_PORT` einen
+zweiten Listener auf eigenem Port; der muss dann zusätzlich veröffentlicht werden.
 
 **Der Proxy ist in Betrieb.** `PUBLIC_OLLAMA_URL` zeigt auf
-`http://azeu-dew-devappl-01:5022`, die Einrichtungsseite gibt also die
-Proxy-Adresse aus. Wer seine `chatLanguageModels.json` vor der Umstellung angelegt
+`http://azeu-dew-devappl-01:5021` – dieselbe Adresse wie das Portal selbst. Wer seine `chatLanguageModels.json` vor der Umstellung angelegt
 hat, muss die `url` bei beiden Modellen einmalig ändern – die Seite weist mit
 einem Hinweis darauf hin und nennt beide Adressen. Die alte Adresse (Port 5020)
 funktioniert weiter, liefert aber keine Zahlen je Modell.
 
-**Reihenfolge beim Ausrollen:** erst `docker compose up -d --build`, damit Port
-5022 veröffentlicht ist, dann von einem Arbeitsplatz aus
-`curl http://azeu-dew-devappl-01:5022/api/version` gegenprüfen (kommt nichts,
-blockiert eine Firewall den Port), und **erst danach** die Nutzer bitten,
-umzustellen.
+**Reihenfolge beim Ausrollen:** erst `docker compose up -d --build`, dann von
+einem Arbeitsplatz aus `curl http://azeu-dew-devappl-01:5021/api/version`
+gegenprüfen – kommt die Ollama-Version zurück, reicht das Portal korrekt durch –
+und **erst danach** die Nutzer bitten, umzustellen. Ein zusätzlicher Port in der
+Firewall ist nicht nötig: Port 5021 war für die Portalseite ohnehin offen.
 
 **Was das kostet:** Das Portal ist damit im kritischen Pfad – ist es aus,
 funktioniert für umgestellte Nutzer kein Chat mehr. Rückweg: `PROXY_AKTIV=false`
-und `PUBLIC_OLLAMA_URL` zurück auf `http://azeu-dew-devappl-01:5020`. Die
+und `PUBLIC_OLLAMA_URL` zurück auf `http://azeu-dew-devappl-01:5020`. Da das
+Portal die Anfragen nur weiterreicht, ist der direkte Weg über Port 5020
+jederzeit parallel nutzbar. Die
 Plausibilitätsprüfung **warnt**, wenn die angezeigte Adresse auf den Proxy-Port
 zeigt, der Proxy aber abgeschaltet ist – der wahrscheinlichste Bedienfehler nach
 der Umstellung.
@@ -412,7 +421,7 @@ app/
   pruefung.py   Plausibilitätsprüfung von Konfiguration und Messwerten
   modelle.py    Modelle auflisten, nachladen (Strom-Fortschritt), löschen
   verlauf.py    Aufzeichnung der Messwerte in SQLite, Verdichtung, Aufräumen
-  proxy.py      Vorgeschalteter Proxy: reicht durch und zählt je Modell mit
+  proxy.py      Weiterleitung an Ollama; zählt laufende Anfragen je Modell
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
   static/       index.html, uebersicht.html, verlauf.html, betrieb.html,
                 style.css und je Seite eine .js-Datei

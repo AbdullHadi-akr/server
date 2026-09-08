@@ -17,8 +17,18 @@ CONTENT_TYPES = {
     ".svg": "image/svg+xml",
 }
 
-# Groesster akzeptierter Anfragerumpf - die Nutzlasten hier sind winzig.
+# Groesster akzeptierter Anfragerumpf der eigenen Endpunkte - die Nutzlasten
+# hier sind winzig. Weitergereichte Modell-Anfragen sind davon nicht betroffen.
 MAX_RUMPF = 64 * 1024
+
+# Eigene POST-Endpunkte. Alles andere geht an Ollama weiter, sofern der Proxy
+# am Portal-Port haengt.
+EIGENE_POST_ROUTEN = {
+    "/api/docker/aktion", "/api/docker/einstellungen",
+    "/api/modelle/laden", "/api/modelle/loeschen",
+    "/api/auth/einrichten", "/api/auth/anmelden", "/api/auth/abmelden",
+    "/api/auth/passwort",
+}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -92,10 +102,31 @@ class Handler(BaseHTTPRequestHandler):
             f"portal_sitzung={token}; HttpOnly; Path=/; SameSite=Strict; "
             f"Max-Age={int(dauer)}")
 
-    def _static(self, name):
+    def _static_pfad(self, name):
+        """Pfad der statischen Datei, oder None - schuetzt vor Pfad-Ausbruch."""
         pfad = os.path.join(STATIC_DIR, name)
-        # Pfad-Ausbruch verhindern.
         if not os.path.abspath(pfad).startswith(STATIC_DIR) or not os.path.isfile(pfad):
+            return None
+        return pfad
+
+    def _unbekannt(self, name=""):
+        """Weder Portal-Route noch Datei: an Ollama weiterreichen.
+
+        So bedient das Portal unter demselben Port auch die Modell-Anfragen.
+        Ist der Proxy aus, bleibt es bei 404.
+        """
+        if name and self._static_pfad(name):
+            self._static(name)
+            return
+        if config.PROXY_AKTIV and proxy.am_portal_port():
+            proxy.durchreichen(self)
+            return
+        self._send(404, "Nicht gefunden", "text/plain; charset=utf-8")
+
+    def _static(self, name):
+        pfad = self._static_pfad(name)
+        # Pfad-Ausbruch verhindern.
+        if pfad is None:
             self._send(404, "Nicht gefunden", "text/plain; charset=utf-8")
             return
         with open(pfad, "rb") as datei:
@@ -106,6 +137,15 @@ class Handler(BaseHTTPRequestHandler):
     # -- Lesende Routen --------------------------------------------------
     def do_HEAD(self):
         self.do_GET()
+
+    def do_DELETE(self):
+        self._unbekannt()   # Ollama loescht Modelle per DELETE /api/delete
+
+    def do_PUT(self):
+        self._unbekannt()
+
+    def do_PATCH(self):
+        self._unbekannt()
 
     def do_GET(self):
         route = urlparse(self.path)
@@ -171,7 +211,7 @@ class Handler(BaseHTTPRequestHandler):
                         "steuerungAktiv": config.DOCKER_STEUERUNG,
                         **auth.zustand()})
         else:
-            self._static(pfad.lstrip("/"))
+            self._unbekannt(pfad.lstrip("/"))
 
     def _modelltest(self, parameter):
         model_id = (parameter.get("model") or [""])[0]
@@ -349,6 +389,10 @@ class Handler(BaseHTTPRequestHandler):
     # -- Schreibende Routen ----------------------------------------------
     def do_POST(self):
         pfad = urlparse(self.path).path.rstrip("/") or "/"
+        if pfad not in EIGENE_POST_ROUTEN:
+            # Modell-Anfragen (z. B. /v1/chat/completions) gehen an Ollama.
+            self._unbekannt()
+            return
         try:
             rumpf = self._rumpf()
         except (ValueError, json.JSONDecodeError) as fehler:

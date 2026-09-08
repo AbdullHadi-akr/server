@@ -5,8 +5,15 @@ gerade laufende Anfrage belegt. Wer den Verkehr durch das Portal leitet,
 bekommt genau das: fuer jedes Modell die Zahl der laufenden Anfragen und
 damit auch die Warteschlange.
 
-Der Proxy lauscht auf einem eigenen Port. Ollamas /api/* wuerde sich sonst
-mit den gleichnamigen Endpunkten des Portals ueberschneiden.
+Ueblicherweise haengt der Proxy am selben Port wie das Portal (5021): Was
+keine Portal-Route ist und keine statische Datei, geht an Ollama weiter. Das
+geht auf, weil sich die Pfade nicht ueberschneiden - das Portal benennt seine
+Endpunkte deutsch (/api/nutzung, /api/verlauf, /api/geladen ...), Ollama
+englisch (/api/chat, /api/tags, /api/ps ...). Wer neue Portal-Endpunkte
+ergaenzt, muss diese Trennung wahren.
+
+Fuer den Fall, dass eine strikte Trennung gewuenscht ist, kann der Proxy auch
+auf einem eigenen Port lauschen: PROXY_PORT abweichend von PORT setzen.
 
 Wichtig ist das ungepufferte Durchreichen der Antwort: Kaeme sie erst am
 Stueck beim Client an, wuerde der Chat in VS Code nicht mehr Wort fuer Wort
@@ -101,6 +108,114 @@ def _modell_aus(rumpf):
     return daten.get("model") or daten.get("name") or ""
 
 
+def rumpf_lesen(handler):
+    """Liest den Anfragerumpf, auch wenn er gestueckelt ankommt."""
+    if (handler.headers.get("Transfer-Encoding") or "").lower() == "chunked":
+        teile = []
+        while True:
+            zeile = handler.rfile.readline().strip()
+            laenge = int(zeile.split(b";")[0] or b"0", 16)
+            if laenge == 0:
+                handler.rfile.readline()
+                break
+            teile.append(handler.rfile.read(laenge))
+            handler.rfile.read(2)
+        return b"".join(teile)
+    laenge = int(handler.headers.get("Content-Length") or 0)
+    return handler.rfile.read(laenge) if laenge else b""
+
+
+def durchreichen(handler, rumpf=None):
+    """Reicht die Anfrage an Ollama weiter und die Antwort ungepuffert zurueck.
+
+    Wird von beiden Wegen genutzt: vom eigenen Proxy-Port und - im Regelfall -
+    vom Portal-Server, wenn eine Anfrage keine seiner eigenen Routen trifft.
+    """
+    if rumpf is None:
+        rumpf = rumpf_lesen(handler)
+    pfad = urllib.parse.urlsplit(handler.path).path
+    zaehlen = any(pfad.startswith(p) for p in SLOT_PFADE)
+    nummer = _anmelden(_modell_aus(rumpf), pfad) if zaehlen else None
+
+    ziel = urllib.parse.urlsplit(config.OLLAMA_URL)
+    kopfzeilen = {name: wert for name, wert in handler.headers.items()
+                  if name.lower() not in UEBERSPRINGEN}
+    kopfzeilen["Host"] = ziel.netloc
+    if rumpf:
+        kopfzeilen["Content-Length"] = str(len(rumpf))
+
+    verbindung = None
+    fehlerhaft = False
+    try:
+        # Kein Zeitlimit auf der Antwort: Generierungen dauern lange.
+        verbindung = http.client.HTTPConnection(
+            ziel.hostname, ziel.port or 80, timeout=config.PROXY_TIMEOUT)
+        verbindung.request(handler.command, handler.path, body=rumpf or None,
+                           headers=kopfzeilen)
+        antwort = verbindung.getresponse()
+        fehlerhaft = antwort.status >= 400
+        _antwort_durchreichen(handler, antwort)
+    except Exception as fehler:
+        fehlerhaft = True
+        _fehler_melden(handler, fehler)
+    finally:
+        if verbindung is not None:
+            try:
+                verbindung.close()
+            except Exception:
+                pass
+        if nummer is not None:
+            _abmelden(nummer, fehlerhaft)
+
+
+def _antwort_durchreichen(handler, antwort):
+    laenge = antwort.getheader("Content-Length")
+    handler.send_response(antwort.status, antwort.reason)
+    for name, wert in antwort.getheaders():
+        if name.lower() not in UEBERSPRINGEN:
+            handler.send_header(name, wert)
+    if laenge is None:
+        # Ohne bekannte Laenge selbst stueckeln - so geht jedes Stueck sofort
+        # raus, statt bis zum Ende gesammelt zu werden.
+        handler.send_header("Transfer-Encoding", "chunked")
+    else:
+        # Content-Length steht in UEBERSPRINGEN und wurde oben ausgelassen -
+        # ohne sie wartet der Client ewig auf das Ende der Antwort.
+        handler.send_header("Content-Length", laenge)
+    handler.end_headers()
+
+    if handler.command == "HEAD":
+        return
+    while True:
+        # read1() statt read(): read() wartet, bis die angeforderte Menge voll
+        # ist, und wuerde den Strom damit anhalten, bis die Antwort fertig ist.
+        stueck = antwort.read1(4096)
+        if not stueck:
+            break
+        if laenge is None:
+            handler.wfile.write(f"{len(stueck):X}\r\n".encode() + stueck + b"\r\n")
+        else:
+            handler.wfile.write(stueck)
+        handler.wfile.flush()
+    if laenge is None:
+        handler.wfile.write(b"0\r\n\r\n")
+        handler.wfile.flush()
+
+
+def _fehler_melden(handler, fehler):
+    meldung = json.dumps({
+        "error": f"Portal-Proxy erreicht Ollama nicht: {fehler}",
+    }).encode("utf-8")
+    try:
+        handler.send_response(502)
+        handler.send_header("Content-Type", "application/json")
+        handler.send_header("Content-Length", str(len(meldung)))
+        handler.end_headers()
+        handler.wfile.write(meldung)
+    except OSError:
+        pass  # Client ist schon weg
+
+
 class _Handler(BaseHTTPRequestHandler):
     server_version = "ModellPortalProxy/1.0"
     protocol_version = "HTTP/1.1"
@@ -108,97 +223,8 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # Ollama protokolliert selbst; doppelte Zeilen bringen nichts.
 
-    def _rumpf_lesen(self):
-        if (self.headers.get("Transfer-Encoding") or "").lower() == "chunked":
-            teile = []
-            while True:
-                zeile = self.rfile.readline().strip()
-                laenge = int(zeile.split(b";")[0] or b"0", 16)
-                if laenge == 0:
-                    self.rfile.readline()
-                    break
-                teile.append(self.rfile.read(laenge))
-                self.rfile.read(2)
-            return b"".join(teile)
-        laenge = int(self.headers.get("Content-Length") or 0)
-        return self.rfile.read(laenge) if laenge else b""
-
     def _weiterleiten(self):
-        rumpf = self._rumpf_lesen()
-        pfad = urllib.parse.urlsplit(self.path).path
-        zaehlen = any(pfad.startswith(p) for p in SLOT_PFADE)
-        nummer = _anmelden(_modell_aus(rumpf), pfad) if zaehlen else None
-
-        ziel = urllib.parse.urlsplit(config.OLLAMA_URL)
-        kopfzeilen = {name: wert for name, wert in self.headers.items()
-                      if name.lower() not in UEBERSPRINGEN}
-        kopfzeilen["Host"] = ziel.netloc
-        if rumpf:
-            kopfzeilen["Content-Length"] = str(len(rumpf))
-
-        fehlerhaft = False
-        try:
-            # Kein Zeitlimit auf der Antwort: Generierungen dauern lange.
-            verbindung = http.client.HTTPConnection(
-                ziel.hostname, ziel.port or 80, timeout=config.PROXY_TIMEOUT)
-            verbindung.request(self.command, self.path, body=rumpf or None,
-                               headers=kopfzeilen)
-            antwort = verbindung.getresponse()
-            fehlerhaft = antwort.status >= 400
-            self._antwort_durchreichen(antwort)
-        except Exception as fehler:
-            fehlerhaft = True
-            self._fehler_melden(fehler)
-        finally:
-            try:
-                verbindung.close()
-            except Exception:
-                pass
-            if nummer is not None:
-                _abmelden(nummer, fehlerhaft)
-
-    def _antwort_durchreichen(self, antwort):
-        laenge = antwort.getheader("Content-Length")
-        self.send_response(antwort.status, antwort.reason)
-        for name, wert in antwort.getheaders():
-            if name.lower() not in UEBERSPRINGEN:
-                self.send_header(name, wert)
-        if laenge is None:
-            # Ohne bekannte Laenge selbst stueckeln - so geht jedes Stueck
-            # sofort raus, statt bis zum Ende gesammelt zu werden.
-            self.send_header("Transfer-Encoding", "chunked")
-        self.end_headers()
-
-        if self.command == "HEAD":
-            return
-        while True:
-            # read1() statt read(): read() wartet, bis die angeforderte Menge
-            # voll ist, und wuerde den Strom damit anhalten, bis die Antwort
-            # fertig ist. read1() gibt zurueck, was gerade da ist.
-            stueck = antwort.read1(4096)
-            if not stueck:
-                break
-            if laenge is None:
-                self.wfile.write(f"{len(stueck):X}\r\n".encode() + stueck + b"\r\n")
-            else:
-                self.wfile.write(stueck)
-            self.wfile.flush()
-        if laenge is None:
-            self.wfile.write(b"0\r\n\r\n")
-            self.wfile.flush()
-
-    def _fehler_melden(self, fehler):
-        meldung = json.dumps({
-            "error": f"Portal-Proxy erreicht Ollama nicht: {fehler}",
-        }).encode("utf-8")
-        try:
-            self.send_response(502)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(meldung)))
-            self.end_headers()
-            self.wfile.write(meldung)
-        except OSError:
-            pass  # Client ist schon weg
+        durchreichen(self)
 
     do_GET = do_POST = do_PUT = do_DELETE = do_HEAD = do_PATCH = _weiterleiten
 
@@ -208,11 +234,21 @@ class _Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
 
+def am_portal_port():
+    """True, wenn der Proxy am Port des Portals haengt (kein zweiter Server)."""
+    return config.PROXY_PORT == config.PORT
+
+
 def starten():
-    """Startet den Proxy in einem Hintergrund-Thread."""
+    """Startet den Proxy - als eigener Server nur bei abweichendem Port."""
     global _laeuft
     if _laeuft or not config.PROXY_AKTIV:
         return False
+    if am_portal_port():
+        # Der Portal-Server reicht selbst durch; ein zweiter Listener auf
+        # demselben Port waere gar nicht moeglich.
+        _laeuft = True
+        return True
     server = _Server((config.HOST, config.PROXY_PORT), _Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     _laeuft = True

@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "2.1 (Proxy in Betrieb)"
+VERSION = "2.2 (Proxy am Portal-Port)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -12,10 +12,10 @@ OLLAMA_URL = os.environ.get(
     "OLLAMA_URL", "http://AZEU-DEW-DEVGPU-02:5020").rstrip("/")
 
 # Adresse, die den Nutzern in der VS-Code-Konfiguration angezeigt wird. Sie
-# zeigt auf den Proxy des Portals (Port 5022), nicht direkt auf Ollama: Nur so
+# zeigt auf das Portal selbst (Port 5021), nicht direkt auf Ollama: Nur so
 # laufen die Anfragen durch das Portal und lassen sich je Modell zaehlen.
 PUBLIC_OLLAMA_URL = os.environ.get(
-    "PUBLIC_OLLAMA_URL", "http://azeu-dew-devappl-01:5022").rstrip("/")
+    "PUBLIC_OLLAMA_URL", "http://azeu-dew-devappl-01:5021").rstrip("/")
 
 # Die zuvor angezeigte Adresse. Sie funktioniert weiter, liefert aber keine
 # Zahlen je Modell. Die Einrichtungsseite benennt damit den Wechsel, statt ihn
@@ -64,9 +64,13 @@ LOG_ZEILEN = int(os.environ.get("LOG_ZEILEN", "4000"))
 # --- Proxy ------------------------------------------------------------------
 # Vorgeschalteter Proxy auf eigenem Port. Zeigt PUBLIC_OLLAMA_URL darauf,
 # laufen die Anfragen durch das Portal und lassen sich je Modell zaehlen.
+# Vorgeschalteter Proxy: Anfragen laufen durch das Portal und lassen sich je
+# Modell zaehlen. Standardmaessig am selben Port wie das Portal - was keine
+# Portal-Route und keine Datei ist, geht an Ollama weiter. Ein abweichender
+# PROXY_PORT startet stattdessen einen zweiten Listener.
 PROXY_AKTIV = os.environ.get("PROXY_AKTIV", "true").lower() in (
     "1", "true", "yes", "ja")
-PROXY_PORT = int(os.environ.get("PROXY_PORT", "5022"))
+PROXY_PORT = int(os.environ.get("PROXY_PORT", str(PORT)))
 # Zeitlimit fuer den Verbindungsaufbau zu Ollama. Auf die Antwort wird
 # unbegrenzt gewartet - Generierungen dauern lange.
 PROXY_TIMEOUT = float(os.environ.get("PROXY_TIMEOUT", "30"))
