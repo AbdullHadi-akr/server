@@ -100,6 +100,39 @@ async function grafikkarte() {
   return daten;
 }
 
+// --- Reservierungen ----------------------------------------------------
+async function reservierungen() {
+  const bereich = document.getElementById("reservierungs-streifen");
+  const ziel = document.getElementById("reservierungen-jetzt");
+  const daten = await holen("/api/reservierungen");
+  ziel.textContent = "";
+  if (!daten.ok) {
+    bereich.hidden = true;
+    return;
+  }
+  const jetzt = Date.now() / 1000;
+  const laufend = daten.reservierungen.filter(
+    (r) => r.start <= jetzt && r.ende > jetzt);
+  if (!laufend.length) {
+    bereich.hidden = true;
+    return;
+  }
+  bereich.hidden = false;
+  laufend.forEach((r) => {
+    const zeile = el("div", "zeile warnung");
+    zeile.appendChild(el("div", "symbol", "🔒"));
+    const inhalt = el("div", "inhalt");
+    inhalt.appendChild(el("div", "titel",
+      r.modell + ": " + r.slots + " von " + daten.slots + " Slots reserviert"));
+    inhalt.appendChild(el("div", "detail",
+      "für " + r.benutzer + " bis " + r.endeText +
+      (r.notiz ? " · " + r.notiz : "") +
+      ". Andere können währenddessen nur die übrigen Slots belegen."));
+    zeile.appendChild(inhalt);
+    ziel.appendChild(zeile);
+  });
+}
+
 // --- Hinweise ----------------------------------------------------------
 async function hinweise() {
   const bereich = document.getElementById("hinweise-bereich");
@@ -349,7 +382,7 @@ async function aktualisieren() {
   const status = await dienst();
   if (!status.ok) return;
   const [speicherDaten, nutzungDaten] = await Promise.all([
-    speicher(status), auslastung(), grafikkarte(), hinweise(),
+    speicher(status), auslastung(), grafikkarte(), hinweise(), reservierungen(),
   ]);
   letzteSpeicherdaten = speicherDaten;
   modelle(speicherDaten, nutzungDaten);

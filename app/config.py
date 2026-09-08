@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "2.4 (Zugangsschluessel)"
+VERSION = "2.5 (Reservierungen)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -81,6 +81,12 @@ PROXY_TIMEOUT = float(os.environ.get("PROXY_TIMEOUT", "30"))
 # zeigt, dass niemand mehr ohne Schluessel kommt - sonst bricht der Chat.
 TOKEN_PFLICHT = os.environ.get("TOKEN_PFLICHT", "false").lower() in (
     "1", "true", "yes", "ja")
+
+# --- Reservierungen ---------------------------------------------------------
+RESERVIERUNG_MAX_STUNDEN = float(os.environ.get("RESERVIERUNG_MAX_STUNDEN", "4"))
+# So viele Slots je Modell bleiben fuer alle anderen frei; Admins duerfen
+# darueber hinaus reservieren.
+RESERVIERUNG_MIN_FREI = int(os.environ.get("RESERVIERUNG_MIN_FREI", "1"))
 
 # --- Verlauf ----------------------------------------------------------------
 # Aufzeichnung der Messwerte in /data/verlauf.sqlite.

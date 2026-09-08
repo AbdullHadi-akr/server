@@ -28,7 +28,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import benutzer, config
+from . import benutzer, config, dockerctl, reservierung
 
 # Pfade, die tatsaechlich einen Slot belegen - nur die werden mitgezaehlt.
 SLOT_PFADE = ("/api/chat", "/api/generate", "/v1/chat/completions",
@@ -152,6 +152,70 @@ def anmeldung_pruefen(handler, pfad):
     return "", None
 
 
+# Die Slot-Zahl kommt aus dem Container und aendert sich selten - einmal je
+# Minute nachsehen genuegt.
+_slots_cache = {"zeit": 0.0, "wert": None}
+
+
+def slots_je_modell():
+    if _slots_cache["wert"] is not None and \
+            time.monotonic() - _slots_cache["zeit"] < 60:
+        return _slots_cache["wert"]
+    wert = config.STANDARD_PARALLEL
+    try:
+        umgebung = dockerctl.status(mit_statistik=False)["einstellungen"]
+        wert = int(umgebung.get("OLLAMA_NUM_PARALLEL") or wert)
+    except (dockerctl.DockerFehler, KeyError, ValueError, TypeError):
+        pass
+    _slots_cache.update({"zeit": time.monotonic(), "wert": wert})
+    return wert
+
+
+def reservierung_pruefen(benutzername, modell):
+    """Darf diese Anfrage jetzt laufen?
+
+    Waehrend einer Reservierung duerfen andere nur die nicht reservierten
+    Slots belegen. Gerechnet wird gegen die Anfragen, die gerade wirklich
+    laufen - so bremst die Regel nur, wenn es eng wird.
+    """
+    if not modell:
+        return None
+    reserviert = reservierung.je_modell(modell)
+    if not reserviert:
+        return None
+
+    parallel = slots_je_modell()
+    name = benutzername or "(ohne Token)"
+    eigene = reserviert.get(name, {}).get("slots", 0)
+    reserviert_gesamt = sum(g["slots"] for g in reserviert.values())
+    frei_fuer_alle = max(0, parallel - reserviert_gesamt)
+
+    with _schloss:
+        laufend = {}
+        for eintrag in _aktive.values():
+            if eintrag["modell"] == modell:
+                wer = eintrag.get("benutzer") or "(ohne Token)"
+                laufend[wer] = laufend.get(wer, 0) + 1
+
+    # Was andere ueber ihre eigene Reservierung hinaus belegen, geht vom
+    # gemeinsamen Rest ab.
+    ueberzug = sum(max(0, anzahl - reserviert.get(wer, {}).get("slots", 0))
+                   for wer, anzahl in laufend.items() if wer != name)
+    erlaubt = eigene + max(0, frei_fuer_alle - ueberzug)
+
+    if laufend.get(name, 0) < erlaubt:
+        return None
+
+    halter = sorted((wer, g) for wer, g in reserviert.items() if wer != name)
+    wer_text = ", ".join(
+        f"{wer} ({g['slots']} Slots bis "
+        f"{time.strftime('%H:%M', time.localtime(g['ende']))})"
+        for wer, g in halter) or "andere Nutzer"
+    return (f"Fuer {modell} sind gerade Slots reserviert: {wer_text}. "
+            f"Von {parallel} Slots stehen dir zurzeit {erlaubt} zu. Bitte "
+            "spaeter erneut versuchen oder im Portal selbst reservieren.")
+
+
 def _modell_aus(rumpf):
     """Liest den Modellnamen aus dem Anfragerumpf."""
     if not rumpf:
@@ -198,7 +262,17 @@ def durchreichen(handler, rumpf=None):
         return
 
     zaehlen = any(pfad.startswith(p) for p in SLOT_PFADE)
-    nummer = _anmelden(_modell_aus(rumpf), pfad, benutzername) if zaehlen else None
+    modell = _modell_aus(rumpf) if zaehlen else ""
+
+    if zaehlen:
+        gesperrt = reservierung_pruefen(benutzername, modell)
+        if gesperrt:
+            with _schloss:
+                _gesamt["abgewiesen"] += 1
+            _antwort_senden(handler, 429, {"error": gesperrt})
+            return
+
+    nummer = _anmelden(modell, pfad, benutzername) if zaehlen else None
 
     ziel = urllib.parse.urlsplit(config.OLLAMA_URL)
     kopfzeilen = {name: wert for name, wert in handler.headers.items()

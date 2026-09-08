@@ -291,3 +291,23 @@ table.modelle button { padding: 5px 10px; font-size: 13px; }
 .kachel .zahl { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 2px; }
 .kachel .zusatz { color: var(--gedaempft); font-size: 12px; }
 button.zeitraum.aktiv { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+
+/* --- Reservierungen ---------------------------------------------------- */
+.zeitleiste { margin: 18px 0; }
+.zeitleiste h4 { margin: 0 0 6px; font-size: 14px; color: var(--akzent); }
+.zeitleiste svg { display: block; width: 100%; }
+.zeitleiste .stunde { fill: var(--gedaempft); font-size: 10px; }
+.zeitleiste .raster { stroke: var(--gitter); stroke-width: 1; }
+.zeitleiste .jetzt { stroke: var(--serie-kritisch); stroke-width: 2; }
+.zeitleiste .block { fill: var(--serie-wash); stroke: var(--serie); stroke-width: 1; rx: 3; }
+.zeitleiste .block.eigen { fill: var(--serie); stroke: var(--serie); }
+.zeitleiste .blocktext { fill: var(--text); font-size: 11px; }
+.regler input[type="date"], .regler input[type="time"], .regler input[type="number"] {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 8px 10px; font-size: 15px; max-width: 220px;
+}
+.knopfleiste input[type="date"] {
+  background: var(--flaeche); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px; padding: 8px 10px;
+}

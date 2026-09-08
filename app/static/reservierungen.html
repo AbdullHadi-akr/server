@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reservierungen</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav class="navi">
+      <a href="/">Einrichtung</a>
+      <a href="/uebersicht">Übersicht</a>
+      <a href="/verlauf">Verlauf</a>
+      <a href="/reservierungen" class="aktiv">Reservierungen</a>
+      <a href="/betrieb">Einstellungen</a>
+      <a href="/benutzer">Benutzer</a>
+      <a href="/konto">Konto</a>
+    </nav>
+    <h1>Reservierungen</h1>
+    <p class="lead">
+      Slots für ein Zeitfenster sichern. Während einer Reservierung dürfen
+      andere nur die übrigen Slots belegen.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="knopfleiste">
+      <button id="btn-zurueck">◀ Vortag</button>
+      <input type="date" id="f-tag">
+      <button id="btn-vor">Folgetag ▶</button>
+      <button id="btn-heute">Heute</button>
+      <span id="tag-status" class="status"></span>
+    </div>
+    <div id="belegung">Lade …</div>
+  </section>
+
+  <section id="anmelde-hinweis" hidden>
+    <h2>Anmeldung nötig</h2>
+    <p class="hinweis">
+      Zum Reservieren bitte anmelden – die Belegung oben ist auch ohne
+      Anmeldung sichtbar. Konten legt ein Administrator unter
+      <a href="/benutzer">Benutzer</a> an.
+    </p>
+    <form id="anmelde-formular" class="regler" autocomplete="off">
+      <label for="f-name">Benutzername</label>
+      <input type="text" id="f-name" autocomplete="username" required>
+      <label for="f-passwort">Passwort</label>
+      <input type="password" id="f-passwort" autocomplete="current-password" required>
+      <div id="wiederholung-block" hidden>
+        <label for="f-passwort2">Passwort wiederholen</label>
+        <input type="password" id="f-passwort2" autocomplete="new-password">
+      </div>
+      <div class="knopfleiste">
+        <button type="submit" class="primaer" id="btn-anmelden">Anmelden</button>
+        <span id="anmelde-meldung" class="status"></span>
+      </div>
+    </form>
+    <p class="hinweis" id="anmeldung-text"></p>
+    <span id="anmeldung-titel" hidden></span>
+  </section>
+
+  <div id="reservieren" hidden>
+    <section>
+      <h2>Slots reservieren</h2>
+      <form id="reservieren-formular" class="regler" autocomplete="off">
+        <label for="f-modell">Modell</label>
+        <select id="f-modell"></select>
+        <label for="f-datum">Datum</label>
+        <input type="date" id="f-datum" required>
+        <label for="f-von">Von</label>
+        <input type="time" id="f-von" step="900" required>
+        <label for="f-bis">Bis</label>
+        <input type="time" id="f-bis" step="900" required>
+        <label for="f-slots">Slots</label>
+        <input type="number" id="f-slots" min="1" value="1" required>
+        <label for="f-notiz">Notiz (freiwillig)</label>
+        <input type="text" id="f-notiz" maxlength="200" placeholder="wofür?">
+        <div class="knopfleiste">
+          <button type="submit" class="primaer">Reservieren</button>
+          <span id="reservieren-meldung" class="status"></span>
+        </div>
+      </form>
+      <p class="hinweis" id="regeln"></p>
+    </section>
+
+    <section>
+      <h2>Meine Reservierungen</h2>
+      <div id="eigene-liste"></div>
+    </section>
+  </div>
+</main>
+
+<footer class="wrap">
+  <p>Angemeldet als <strong id="angemeldet-als"></strong>
+     <button id="btn-abmelden" hidden>Abmelden</button>
+     · Version <span id="fuss-version">…</span></p>
+</footer>
+
+<script src="/gemeinsam.js"></script>
+<script src="/reservierungen.js"></script>
+</body>
+</html>

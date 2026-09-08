@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import (auth, benutzer, config, dockerctl, gpu, modelle, nutzung,
-               ollama, proxy, pruefung, verlauf, vram)
+               ollama, proxy, pruefung, reservierung, verlauf, vram)
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -31,6 +31,7 @@ EIGENE_POST_ROUTEN = {
     "/api/benutzer/anlegen", "/api/benutzer/aendern", "/api/benutzer/passwort",
     "/api/benutzer/token", "/api/benutzer/loeschen",
     "/api/konto/token",
+    "/api/reservierungen/anlegen", "/api/reservierungen/loeschen",
 }
 
 
@@ -188,10 +189,14 @@ class Handler(BaseHTTPRequestHandler):
             self._static("benutzer.html")
         elif pfad == "/konto":
             self._static("konto.html")
+        elif pfad == "/reservierungen":
+            self._static("reservierungen.html")
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
             self._json({"status": "ok", "version": config.VERSION,
-                        "seiten": ["/", "/uebersicht", "/verlauf", "/betrieb"],
+                        "seiten": ["/", "/uebersicht", "/verlauf",
+                                   "/reservierungen", "/betrieb", "/benutzer",
+                                   "/konto"],
                         "proxy": config.PROXY_PORT if config.PROXY_AKTIV else None})
         elif pfad == "/api/modelle":
             self._json({
@@ -249,6 +254,8 @@ class Handler(BaseHTTPRequestHandler):
             self._benutzer_liste()
         elif pfad == "/api/konto":
             self._konto_lesen()
+        elif pfad == "/api/reservierungen":
+            self._reservierungen(parameter)
         else:
             self._unbekannt(pfad.lstrip("/"))
 
@@ -440,6 +447,28 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json({"ok": True, "benutzer": benutzer.finde(eintrag["benutzerId"])})
 
+    def _reservierungen(self, parameter):
+        """Reservierungen eines Tages - fuer alle sichtbar, auch ohne Anmeldung."""
+        eintrag = self._konto()
+        try:
+            daten = reservierung.fuer_tag((parameter.get("tag") or [""])[0] or None)
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+            return
+        daten.update({
+            "ok": True,
+            "modelle": [{"id": m["id"], "name": m["name"]} for m in config.MODELS],
+            "slots": proxy.slots_je_modell(),
+            "maxStunden": config.RESERVIERUNG_MAX_STUNDEN,
+            "minFrei": config.RESERVIERUNG_MIN_FREI,
+            "angemeldet": eintrag is not None,
+            "istAdmin": bool(eintrag and eintrag["rolle"] == benutzer.ADMIN),
+            "eigenerName": eintrag["name"] if eintrag else "",
+            "eigene": (reservierung.eigene(eintrag["benutzerId"])
+                       if eintrag else []),
+        })
+        self._json(daten)
+
     # -- Schreibende Routen ----------------------------------------------
     def do_POST(self):
         pfad = urlparse(self.path).path.rstrip("/") or "/"
@@ -473,6 +502,10 @@ class Handler(BaseHTTPRequestHandler):
             self._benutzer_loeschen(rumpf)
         elif pfad == "/api/konto/token":
             self._konto_token()
+        elif pfad == "/api/reservierungen/anlegen":
+            self._reservierung_anlegen(rumpf)
+        elif pfad == "/api/reservierungen/loeschen":
+            self._reservierung_loeschen(rumpf)
         elif pfad == "/api/auth/einrichten":
             self._auth_einrichten(rumpf)
         elif pfad == "/api/auth/anmelden":
@@ -612,6 +645,33 @@ class Handler(BaseHTTPRequestHandler):
             self._fehler(str(fehler))
             return
         auth.sitzungen_beenden(benutzer_id)
+        self._json({"ok": True})
+
+    def _reservierung_anlegen(self, rumpf):
+        eintrag = self._verlangt_anmeldung()
+        if eintrag is None:
+            return
+        try:
+            neu = reservierung.anlegen(
+                eintrag["benutzerId"], eintrag["rolle"] == benutzer.ADMIN,
+                rumpf.get("modell", ""), rumpf.get("start", ""),
+                rumpf.get("ende", ""), rumpf.get("slots", 1),
+                rumpf.get("notiz", ""), proxy.slots_je_modell())
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+            return
+        self._json({"ok": True, "reservierung": neu})
+
+    def _reservierung_loeschen(self, rumpf):
+        eintrag = self._verlangt_anmeldung()
+        if eintrag is None:
+            return
+        try:
+            reservierung.loeschen(int(rumpf.get("id", 0)), eintrag["benutzerId"],
+                                  eintrag["rolle"] == benutzer.ADMIN)
+        except (ValueError, TypeError) as fehler:
+            self._fehler(str(fehler))
+            return
         self._json({"ok": True})
 
     def _konto_token(self):
@@ -758,6 +818,11 @@ def main():
           f"(Steuerung {'aktiv' if config.DOCKER_STEUERUNG else 'deaktiviert'})",
           flush=True)
     _konten_vorbereiten()
+    # Lange abgelaufene Reservierungen wegraeumen.
+    try:
+        reservierung.aufraeumen()
+    except Exception as fehler:
+        print(f"Reservierungen konnten nicht aufgeraeumt werden: {fehler}", flush=True)
     if proxy.starten():
         print(f"Proxy laeuft auf http://{config.HOST}:{config.PROXY_PORT} "
               f"-> {config.OLLAMA_URL}", flush=True)

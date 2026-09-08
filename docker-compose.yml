@@ -44,6 +44,11 @@ services:
       # startet einen zweiten Listener und braucht einen weiteren Port.
       # PROXY_PORT: "5022"
 
+      # Reservierungen: laengstes Zeitfenster und wie viele Slots normalen
+      # Nutzern verwehrt bleiben, damit einer nicht alle aussperrt.
+      RESERVIERUNG_MAX_STUNDEN: "4"
+      RESERVIERUNG_MIN_FREI: "1"
+
       # Verlaufsaufzeichnung.
       VERLAUF_AKTIV: "true"
       VERLAUF_TAKT: "60"

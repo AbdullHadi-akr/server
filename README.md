@@ -15,6 +15,7 @@ prüft auf Knopfdruck, ob Ollama korrekt läuft und die Modelle sauber antworten
 | `/betrieb` | **Admin** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
 | `/benutzer` | **Admin** | Konten anlegen, sperren, Rolle ändern, Schlüssel erneuern |
 | `/konto` | angemeldet | Eigener Zugangsschlüssel und eigenes Passwort |
+| `/reservierungen` | offen (Reservieren: angemeldet) | Belegung je Modell, Slots für ein Zeitfenster sichern |
 
 ## Starten
 
@@ -68,6 +69,8 @@ Alles über Umgebungsvariablen:
 | `PROXY_AKTIV`       | `true`                              | Proxy vor Ollama. |
 | `PROXY_PORT`        | wie `PORT`                          | Abweichender Wert startet einen zweiten Listener. |
 | `TOKEN_PFLICHT`     | `false`                             | `true` weist Anfragen ohne Zugangsschlüssel ab. |
+| `RESERVIERUNG_MAX_STUNDEN` | `4`                          | Längstes Zeitfenster einer Reservierung. |
+| `RESERVIERUNG_MIN_FREI` | `1`                             | Slots, die normalen Nutzern verwehrt bleiben. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
 | `GPU_VRAM_GIB`      | `80`                                | Rückfallwert, falls `nvidia-smi` nicht erreichbar ist. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
@@ -278,6 +281,45 @@ Plausibilitätsprüfung **warnt**, wenn die angezeigte Adresse auf den Proxy-Por
 zeigt, der Proxy aber abgeschaltet ist – der wahrscheinlichste Bedienfehler nach
 der Umstellung.
 
+## Reservierungen
+
+Wer weiß, dass er nachmittags eine größere Aufgabe rechnen lässt, sichert sich
+Kapazität: *„3 Slots auf qwen3:30b-a3b von 13 bis 15 Uhr."* Während des Fensters
+hält das Portal diese Slots frei – andere Nutzer dürfen nur die übrigen belegen,
+darüber hinausgehende Anfragen weist der Proxy mit **429** und einer Begründung
+ab, die nennt, wer bis wann reserviert hat.
+
+**Freigehalten wird hart:** Die Slots bleiben über das ganze Fenster reserviert,
+auch wenn der Reservierende gerade nichts rechnet. Das ist für ihn verlässlich
+und der Grund für die Begrenzung der Fensterlänge.
+
+**Regeln beim Anlegen**
+
+- Höchstens `RESERVIERUNG_MAX_STUNDEN` (Standard 4) am Stück.
+- Keine Überbuchung: Die Summe überlappender Reservierungen eines Modells bleibt
+  innerhalb von `OLLAMA_NUM_PARALLEL`.
+- Normale Nutzer müssen `RESERVIERUNG_MIN_FREI` Slots (Standard 1) für alle
+  anderen frei lassen; Administratoren dürfen das Modell ganz belegen.
+- Stornieren darf jeder seine eigene Reservierung, Administratoren alle. Die
+  Kapazität ist sofort wieder frei.
+
+**Wie viel darf ich gerade?** Zum Zeitpunkt *t* für ein Modell:
+
+```
+frei_für_alle    = Slots − Summe aller Reservierungen
+überzug_anderer  = Σ über andere Nutzer von max(0, laufend − reserviert)
+erlaubt_für_mich = eigene_Reservierung + max(0, frei_für_alle − überzug_anderer)
+```
+
+Wer eine Reservierung hat, bekommt also seine Slots **plus** den freien Rest,
+solange ihn niemand sonst belegt. Ein Beispiel mit 4 Slots und 3 reservierten für
+Meier: Meier darf 4 gleichzeitig, solange sonst niemand rechnet; sobald ein
+anderer den freien Slot nutzt, bleiben Meier genau seine 3, und der andere kommt
+auf keinen zweiten.
+
+Die Übersicht zeigt laufende Reservierungen als Streifen, die Seite
+`/reservierungen` die Belegung des Tages als Zeitleiste je Modell.
+
 ## Zugangsschlüssel für die Chat-Anfragen
 
 Damit das Portal weiß, **wer** eine Anfrage schickt, weist sich jeder Nutzer mit
@@ -458,6 +500,8 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 | `GET /api/benutzer`      | Kontenliste (Admin). |
 | `POST /api/benutzer/anlegen` \| `/aendern` \| `/passwort` \| `/token` \| `/loeschen` | Kontenpflege (Admin). |
 | `GET /api/konto`, `POST /api/konto/token` | Eigenes Konto, eigenen Schlüssel erneuern. |
+| `GET /api/reservierungen` | Belegung eines Tages (`?tag=YYYY-MM-DD`). |
+| `POST /api/reservierungen/anlegen` \| `/loeschen` | Reservieren und stornieren. |
 
 ## Einrichtung in VS Code (Kurzfassung)
 
@@ -481,6 +525,7 @@ app/
                 Neuerstellen mit geänderter Umgebung inkl. Rollback
   auth.py       Anmeldung, Sitzungen, Sperre nach Fehlversuchen
   benutzer.py   Konten, Rollen, Passwort- und Schlüsselverwaltung
+  reservierung.py Zeitfenster je Modell, Kapazitätsregeln
   nutzung.py    Slot-Auslastung aus dem Zugriffslog des Containers
   vram.py       VRAM-Schätzung aus Nutzeranzahl, Kontext und KV-Cache-Typ
   gpu.py        Echte GPU-Werte über nvidia-smi im Ollama-Container
