@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "2.2 (Proxy am Portal-Port)"
+VERSION = "2.3 (Benutzer und Rollen)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -51,8 +51,8 @@ DOCKER_STEUERUNG = os.environ.get("DOCKER_STEUERUNG", "true").lower() in (
 # eingebunden sein, sonst ist das Passwort nach einem Neustart weg.
 DATEN_DIR = os.environ.get("DATEN_VERZEICHNIS", "/data")
 
-# Optional fest vorgegebenes Passwort. Ist es gesetzt, entfaellt die
-# Ersteinrichtung im Browser und das Passwort laesst sich dort nicht aendern.
+# Optional vorgegebenes Passwort fuer den ersten Admin. Nuetzlich fuer
+# automatisierte Installationen; wird nur beim allerersten Start verwendet.
 PORTAL_PASSWORT = os.environ.get("PORTAL_PASSWORT", "")
 
 # Gueltigkeit einer Anmeldung in Sekunden (verlaengert sich bei Nutzung).

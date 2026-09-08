@@ -12,7 +12,9 @@ prüft auf Knopfdruck, ob Ollama korrekt läuft und die Modelle sauber antworten
 | `/` | offen | Anleitung zur Einbindung in VS Code, Funktionsprüfung |
 | `/uebersicht` | offen, nur lesend | Dienst-Status, GPU, Modelle, Slot-Auslastung |
 | `/verlauf` | offen, nur lesend | Auslastung, Speicher und Anfragen über Tage und Wochen |
-| `/betrieb` | **Passwort** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
+| `/betrieb` | **Admin** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
+| `/benutzer` | **Admin** | Konten anlegen, sperren, Rolle ändern, Schlüssel erneuern |
+| `/konto` | angemeldet | Eigener Zugangsschlüssel und eigenes Passwort |
 
 ## Starten
 
@@ -328,6 +330,38 @@ Wirklichkeit auseinanderlaufen. Geprüft wird:
 Jeder Hinweis nennt Begründung und Gegenmittel. Warnungen sind rot, bloße
 Hinweise gelb; ist alles stimmig, verschwindet der Abschnitt.
 
+## Benutzer und Rollen
+
+Das Portal kennt zwei Rollen:
+
+| Rolle | darf |
+|---|---|
+| `admin` | alles: Container steuern, Einstellungen ändern, Modelle verwalten, Konten anlegen |
+| `nutzer` | sich anmelden, den eigenen Zugangsschlüssel sehen und erneuern, das eigene Passwort ändern |
+
+Übersicht und Verlauf bleiben ohne Anmeldung zugänglich.
+
+**Beim ersten Start** legt der Aufruf einer geschützten Seite den ersten
+Administrator an (Benutzername + Passwort). Gab es vorher schon das gemeinsame
+Einzelpasswort in `/data/auth.json`, wird daraus automatisch der Admin `admin` –
+der Hash wird übernommen, **das bisherige Passwort gilt unverändert weiter**, nur
+eben zusammen mit dem Benutzernamen `admin`. Alternativ legt `PORTAL_PASSWORT`
+beim allerersten Start einen Admin `admin` an.
+
+Konten liegen in `/data/portal.sqlite`; Passwörter als PBKDF2-HMAC-SHA256-Hash
+mit 240 000 Iterationen und zufälligem Salz.
+
+**Zugangsschlüssel:** Jedes Konto hat einen Token (`mp_…`), mit dem sich später
+die Chat-Anfragen ausweisen. Gespeichert wird nur sein SHA-256-Abdruck, er ist
+deshalb **nur unmittelbar nach dem Erzeugen im Klartext sichtbar**. Verloren?
+Unter `/konto` einen neuen erzeugen – der alte wird damit ungültig.
+
+**Eingebaute Sicherungen:** Der letzte aktive Admin kann weder herabgestuft noch
+gesperrt noch gelöscht werden, und niemand löscht sein eigenes Konto. Fünf
+Fehlversuche sperren für eine Minute – gezählt je Adresse *und* je Benutzername.
+Das Ändern von Rolle, Zustand oder Passwort beendet die offenen Sitzungen des
+betroffenen Kontos sofort.
+
 ## Passwortschutz der Einstellungsseite
 
 Beim ersten Aufruf von `/betrieb` fordert das Portal zum Festlegen eines
@@ -393,6 +427,9 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 | `GET /api/nutzung`       | Slot-Auslastung aus den Zugriffslogs. |
 | `GET /api/auth/status`   | Ist ein Passwort gesetzt, ist die Sitzung gültig? |
 | `POST /api/auth/einrichten` \| `/anmelden` \| `/abmelden` \| `/passwort` | Anmeldung. |
+| `GET /api/benutzer`      | Kontenliste (Admin). |
+| `POST /api/benutzer/anlegen` \| `/aendern` \| `/passwort` \| `/token` \| `/loeschen` | Kontenpflege (Admin). |
+| `GET /api/konto`, `POST /api/konto/token` | Eigenes Konto, eigenen Schlüssel erneuern. |
 
 ## Einrichtung in VS Code (Kurzfassung)
 
@@ -414,7 +451,8 @@ app/
   ollama.py     Prüfungen gegen Ollama (Erreichbarkeit, Modelle, Chat, Tools)
   dockerctl.py  Docker-Engine-API über den Unix-Socket: Status, Neustart,
                 Neuerstellen mit geänderter Umgebung inkl. Rollback
-  auth.py       Passwort-Hash, Sitzungen, Sperre nach Fehlversuchen
+  auth.py       Anmeldung, Sitzungen, Sperre nach Fehlversuchen
+  benutzer.py   Konten, Rollen, Passwort- und Schlüsselverwaltung
   nutzung.py    Slot-Auslastung aus dem Zugriffslog des Containers
   vram.py       VRAM-Schätzung aus Nutzeranzahl, Kontext und KV-Cache-Typ
   gpu.py        Echte GPU-Werte über nvidia-smi im Ollama-Container

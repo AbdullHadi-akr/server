@@ -5,8 +5,8 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import (auth, config, dockerctl, gpu, modelle, nutzung, ollama,
-               proxy, pruefung, verlauf, vram)
+from . import (auth, benutzer, config, dockerctl, gpu, modelle, nutzung,
+               ollama, proxy, pruefung, verlauf, vram)
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
@@ -28,6 +28,9 @@ EIGENE_POST_ROUTEN = {
     "/api/modelle/laden", "/api/modelle/loeschen",
     "/api/auth/einrichten", "/api/auth/anmelden", "/api/auth/abmelden",
     "/api/auth/passwort",
+    "/api/benutzer/anlegen", "/api/benutzer/aendern", "/api/benutzer/passwort",
+    "/api/benutzer/token", "/api/benutzer/loeschen",
+    "/api/konto/token",
 }
 
 
@@ -77,16 +80,37 @@ class Handler(BaseHTTPRequestHandler):
                 return wert
         return ""
 
+    def _konto(self):
+        """Die angemeldete Sitzung, oder None."""
+        return auth.sitzung(self._sitzung())
+
     def _angemeldet(self):
-        return auth.gueltig(self._sitzung())
+        return self._konto() is not None
 
     def _adresse(self):
         return self.client_address[0] if self.client_address else "unbekannt"
 
-    def _darf_schreiben(self):
-        """Prueft Anmeldung und Freischaltung der Steuerung."""
-        if not self._angemeldet():
+    def _verlangt_anmeldung(self):
+        """Fuer alles, was jeder angemeldete Benutzer darf."""
+        if self._konto() is None:
             self._fehler("Nicht angemeldet.", 401)
+            return None
+        return self._konto()
+
+    def _verlangt_admin(self):
+        """Fuer alles, was den Server veraendert - nur fuer Administratoren."""
+        eintrag = self._konto()
+        if eintrag is None:
+            self._fehler("Nicht angemeldet.", 401)
+            return None
+        if eintrag["rolle"] != benutzer.ADMIN:
+            self._fehler("Diese Aktion ist Administratoren vorbehalten.", 403)
+            return None
+        return eintrag
+
+    def _darf_schreiben(self):
+        """Aendert den Ollama-Container - Admin und Steuerung freigeschaltet."""
+        if self._verlangt_admin() is None:
             return False
         if not config.DOCKER_STEUERUNG:
             self._fehler("Die Steuerung ist deaktiviert (DOCKER_STEUERUNG=false).", 403)
@@ -160,6 +184,10 @@ class Handler(BaseHTTPRequestHandler):
             self._static("uebersicht.html")
         elif pfad == "/verlauf":
             self._static("verlauf.html")
+        elif pfad == "/benutzer":
+            self._static("benutzer.html")
+        elif pfad == "/konto":
+            self._static("konto.html")
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
             self._json({"status": "ok", "version": config.VERSION,
@@ -207,9 +235,19 @@ class Handler(BaseHTTPRequestHandler):
         elif pfad == "/api/pruefung":
             self._pruefung()
         elif pfad == "/api/auth/status":
-            self._json({"ok": True, "angemeldet": self._angemeldet(),
-                        "steuerungAktiv": config.DOCKER_STEUERUNG,
-                        **auth.zustand()})
+            eintrag = self._konto()
+            self._json({
+                "ok": True,
+                "angemeldet": eintrag is not None,
+                "benutzer": ({"name": eintrag["name"], "rolle": eintrag["rolle"]}
+                             if eintrag else None),
+                "istAdmin": bool(eintrag and eintrag["rolle"] == benutzer.ADMIN),
+                "steuerungAktiv": config.DOCKER_STEUERUNG,
+                **auth.zustand()})
+        elif pfad == "/api/benutzer":
+            self._benutzer_liste()
+        elif pfad == "/api/konto":
+            self._konto_lesen()
         else:
             self._unbekannt(pfad.lstrip("/"))
 
@@ -386,6 +424,18 @@ class Handler(BaseHTTPRequestHandler):
         self._json(pruefung.hinweise(zustand, ollama.geladene_modelle(),
                                      gpu.werte()))
 
+    def _benutzer_liste(self):
+        if self._verlangt_admin() is None:
+            return
+        self._json({"ok": True, "benutzer": benutzer.liste(),
+                    "rollen": list(benutzer.ROLLEN)})
+
+    def _konto_lesen(self):
+        eintrag = self._verlangt_anmeldung()
+        if eintrag is None:
+            return
+        self._json({"ok": True, "benutzer": benutzer.finde(eintrag["benutzerId"])})
+
     # -- Schreibende Routen ----------------------------------------------
     def do_POST(self):
         pfad = urlparse(self.path).path.rstrip("/") or "/"
@@ -407,6 +457,18 @@ class Handler(BaseHTTPRequestHandler):
             self._modell_laden(rumpf)
         elif pfad == "/api/modelle/loeschen":
             self._modell_loeschen(rumpf)
+        elif pfad == "/api/benutzer/anlegen":
+            self._benutzer_anlegen(rumpf)
+        elif pfad == "/api/benutzer/aendern":
+            self._benutzer_aendern(rumpf)
+        elif pfad == "/api/benutzer/passwort":
+            self._benutzer_passwort(rumpf)
+        elif pfad == "/api/benutzer/token":
+            self._benutzer_token(rumpf)
+        elif pfad == "/api/benutzer/loeschen":
+            self._benutzer_loeschen(rumpf)
+        elif pfad == "/api/konto/token":
+            self._konto_token()
         elif pfad == "/api/auth/einrichten":
             self._auth_einrichten(rumpf)
         elif pfad == "/api/auth/anmelden":
@@ -437,35 +499,124 @@ class Handler(BaseHTTPRequestHandler):
             self._fehler(str(fehler))
 
     def _auth_einrichten(self, rumpf):
+        name = str(rumpf.get("name", "")).strip() or "admin"
+        passwort = rumpf.get("passwort", "")
         try:
-            auth.einrichten(rumpf.get("passwort", ""))
+            ergebnis = auth.einrichten(name, passwort)
         except ValueError as fehler:
             self._fehler(str(fehler))
             return
         # Nach der Ersteinrichtung direkt angemeldet sein.
-        token = auth.anmelden(rumpf.get("passwort", ""), self._adresse())
-        self._json({"ok": True}, cookie=(token, config.SITZUNGSDAUER))
+        token, _ = auth.anmelden(name, passwort, self._adresse())
+        self._json({"ok": True, "benutzer": ergebnis["benutzer"],
+                    "token": ergebnis["token"]},
+                   cookie=(token, config.SITZUNGSDAUER))
 
     def _auth_anmelden(self, rumpf):
         try:
-            token = auth.anmelden(rumpf.get("passwort", ""), self._adresse())
+            token, konto = auth.anmelden(rumpf.get("name", ""),
+                                         rumpf.get("passwort", ""),
+                                         self._adresse())
         except PermissionError as fehler:
             self._fehler(str(fehler), 401)
             return
-        self._json({"ok": True}, cookie=(token, config.SITZUNGSDAUER))
+        self._json({"ok": True, "benutzer": {"name": konto["name"],
+                                             "rolle": konto["rolle"]}},
+                   cookie=(token, config.SITZUNGSDAUER))
 
     def _auth_passwort(self, rumpf):
-        if not self._angemeldet():
-            self._fehler("Nicht angemeldet.", 401)
+        """Aendert das eigene Passwort."""
+        eintrag = self._verlangt_anmeldung()
+        if eintrag is None:
             return
         try:
-            auth.passwort_aendern(rumpf.get("alt", ""), rumpf.get("neu", ""))
+            benutzer.passwort_aendern(eintrag["benutzerId"],
+                                      rumpf.get("alt", ""), rumpf.get("neu", ""))
         except ValueError as fehler:
             self._fehler(str(fehler))
             return
-        # Das Aendern beendet alle Sitzungen - auch die eigene.
+        # Der Wechsel beendet alle eigenen Sitzungen.
+        auth.sitzungen_beenden(eintrag["benutzerId"])
         self._json({"ok": True, "hinweis": "Bitte neu anmelden."},
                    cookie=("", 0))
+
+    # -- Benutzerverwaltung (Admin) --------------------------------------
+    def _benutzer_anlegen(self, rumpf):
+        if self._verlangt_admin() is None:
+            return
+        try:
+            ergebnis = benutzer.anlegen(rumpf.get("name", ""),
+                                        rumpf.get("passwort", ""),
+                                        rumpf.get("rolle", benutzer.NUTZER))
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+            return
+        # Der Token ist hier zum einzigen Mal im Klartext zu sehen.
+        self._json({"ok": True, **ergebnis})
+
+    def _benutzer_aendern(self, rumpf):
+        if self._verlangt_admin() is None:
+            return
+        try:
+            konto = benutzer.aendern(int(rumpf.get("id", 0)),
+                                     rolle=rumpf.get("rolle"),
+                                     aktiv=rumpf.get("aktiv"))
+        except (ValueError, TypeError) as fehler:
+            self._fehler(str(fehler))
+            return
+        # Gesperrte oder herabgestufte Konten verlieren ihre offenen Sitzungen.
+        auth.sitzungen_beenden(konto["id"])
+        self._json({"ok": True, "benutzer": konto})
+
+    def _benutzer_passwort(self, rumpf):
+        if self._verlangt_admin() is None:
+            return
+        try:
+            benutzer_id = int(rumpf.get("id", 0))
+            benutzer.passwort_setzen(benutzer_id, rumpf.get("passwort", ""))
+        except (ValueError, TypeError) as fehler:
+            self._fehler(str(fehler))
+            return
+        auth.sitzungen_beenden(benutzer_id)
+        self._json({"ok": True})
+
+    def _benutzer_token(self, rumpf):
+        if self._verlangt_admin() is None:
+            return
+        try:
+            token = benutzer.token_erneuern(int(rumpf.get("id", 0)))
+        except (ValueError, TypeError) as fehler:
+            self._fehler(str(fehler))
+            return
+        self._json({"ok": True, "token": token})
+
+    def _benutzer_loeschen(self, rumpf):
+        eintrag = self._verlangt_admin()
+        if eintrag is None:
+            return
+        try:
+            benutzer_id = int(rumpf.get("id", 0))
+        except (ValueError, TypeError):
+            self._fehler("Unbekannter Benutzer.")
+            return
+        if benutzer_id == eintrag["benutzerId"]:
+            self._fehler("Das eigene Konto laesst sich nicht loeschen.")
+            return
+        try:
+            benutzer.loeschen(benutzer_id)
+        except ValueError as fehler:
+            self._fehler(str(fehler))
+            return
+        auth.sitzungen_beenden(benutzer_id)
+        self._json({"ok": True})
+
+    def _konto_token(self):
+        """Erneuert den eigenen Zugangsschluessel."""
+        eintrag = self._verlangt_anmeldung()
+        if eintrag is None:
+            return
+        self._json({"ok": True,
+                    "token": benutzer.token_erneuern(eintrag["benutzerId"])})
 
     def _docker_aktion(self, rumpf):
         if not self._darf_schreiben():
@@ -573,6 +724,28 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
 
+def _konten_vorbereiten():
+    """Sorgt dafuer, dass es beim Start einen Admin gibt."""
+    uebernommen = benutzer.uebernehme_altes_passwort()
+    if uebernommen:
+        print(f"Bisheriges Einzelpasswort uebernommen: Benutzer '{uebernommen}' "
+              "mit der Rolle admin", flush=True)
+    elif config.PORTAL_PASSWORT and not benutzer.eingerichtet():
+        # Vorgabe per Umgebung: nuetzlich fuer automatisierte Installationen.
+        try:
+            benutzer.anlegen("admin", config.PORTAL_PASSWORT, benutzer.ADMIN)
+            print("Admin 'admin' aus PORTAL_PASSWORT angelegt", flush=True)
+        except ValueError as fehler:
+            print(f"PORTAL_PASSWORT nicht verwendbar: {fehler}", flush=True)
+
+    anzahl = benutzer.anzahl()
+    if anzahl:
+        print(f"{anzahl} Benutzerkonten", flush=True)
+    else:
+        print("Noch kein Konto - der erste Aufruf von /betrieb legt den "
+              "Administrator an", flush=True)
+
+
 def main():
     server = Server((config.HOST, config.PORT), Handler)
     print(f"Portal laeuft auf http://{config.HOST}:{config.PORT}", flush=True)
@@ -580,13 +753,7 @@ def main():
     print(f"Ollama-Container: {config.CONTAINER_NAME} "
           f"(Steuerung {'aktiv' if config.DOCKER_STEUERUNG else 'deaktiviert'})",
           flush=True)
-    if auth.per_umgebung():
-        print("Passwort per PORTAL_PASSWORT vorgegeben", flush=True)
-    elif auth.eingerichtet():
-        print("Passwort ist eingerichtet", flush=True)
-    else:
-        print("Noch kein Passwort gesetzt - wird beim ersten Aufruf von "
-              "/betrieb abgefragt", flush=True)
+    _konten_vorbereiten()
     if proxy.starten():
         print(f"Proxy laeuft auf http://{config.HOST}:{config.PROXY_PORT} "
               f"-> {config.OLLAMA_URL}", flush=True)

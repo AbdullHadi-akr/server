@@ -15,6 +15,8 @@
       <a href="/uebersicht">Übersicht</a>
       <a href="/verlauf">Verlauf</a>
       <a href="/betrieb" class="aktiv">Einstellungen</a>
+      <a href="/benutzer">Benutzer</a>
+      <a href="/konto">Konto</a>
     </nav>
     <h1>Einstellungen</h1>
     <p class="lead">
@@ -30,6 +32,8 @@
     <h2 id="anmeldung-titel">Anmeldung</h2>
     <p class="hinweis" id="anmeldung-text"></p>
     <form id="anmelde-formular" class="regler" autocomplete="off">
+      <label for="f-name">Benutzername</label>
+      <input type="text" id="f-name" autocomplete="username" required>
       <label for="f-passwort">Passwort</label>
       <input type="password" id="f-passwort" autocomplete="current-password" required>
       <div id="wiederholung-block" hidden>
@@ -41,6 +45,16 @@
         <span id="anmelde-meldung" class="status"></span>
       </div>
     </form>
+  </section>
+
+  <section id="kein-zugriff" hidden>
+    <h2>Keine Berechtigung</h2>
+    <p class="hinweis">
+      Einstellungen dürfen nur Administratoren ändern. Unter
+      <a href="/konto">Konto</a> findest du deinen Zugangsschlüssel und deine
+      Reservierungen; <a href="/uebersicht">Übersicht</a> und
+      <a href="/verlauf">Verlauf</a> stehen allen offen.
+    </p>
   </section>
 
   <div id="geschuetzt" hidden>
@@ -160,32 +174,14 @@ KV-Cache = 96 KiB/Token × Nutzeranzahl × Kontext × KV-Faktor</pre>
     </p>
   </section>
 
-  <section id="konto">
-    <h2>Passwort</h2>
-    <form id="passwort-formular" class="regler" autocomplete="off">
-      <label for="f-alt">Bisheriges Passwort</label>
-      <input type="password" id="f-alt" autocomplete="current-password">
-      <label for="f-neu">Neues Passwort</label>
-      <input type="password" id="f-neu" autocomplete="new-password">
-      <div class="knopfleiste">
-        <button type="submit">Passwort ändern</button>
-        <button type="button" id="btn-abmelden">Abmelden</button>
-        <span id="passwort-meldung" class="status"></span>
-      </div>
-    </form>
-    <p class="hinweis">
-      Gespeichert wird nur ein PBKDF2-Hash mit zufälligem Salz. Ein
-      Passwortwechsel beendet alle offenen Sitzungen.
-    </p>
-  </section>
-
   </div>
 </main>
 
 <footer class="wrap">
-  <p>Portal Port <strong>5021</strong> · Container <code id="fuss-container">…</code> · Version <span id="fuss-version">…</span></p>
+  <p>Angemeldet als <strong id="angemeldet-als"></strong> <button id="btn-abmelden" hidden>Abmelden</button> · Container <code id="fuss-container">…</code> · Version <span id="fuss-version">…</span></p>
 </footer>
 
+<script src="/gemeinsam.js"></script>
 <script src="/betrieb.js"></script>
 </body>
 </html>
