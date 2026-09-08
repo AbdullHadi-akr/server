@@ -52,6 +52,18 @@ async function seiteAufbauen() {
       "aber sichtbar, wie viele Slots je Modell gerade belegt sind.";
   }
 
+  // Der Schlüssel-Schritt wird erst wichtig, wenn der Proxy die Anfragen sieht.
+  const schluessel = document.getElementById("schluessel-hinweis");
+  if (schluessel && daten.ueberProxy) {
+    schluessel.textContent = daten.tokenPflicht
+      ? "Wichtig: Wo VS Code nach einem API-Key fragt, gehört der persönliche " +
+        "Zugangsschlüssel aus dem Portal hinein (Seite „Konto“). Ohne ihn " +
+        "werden Anfragen abgewiesen."
+      : "Wo VS Code nach einem API-Key fragt, am besten schon jetzt den " +
+        "persönlichen Zugangsschlüssel aus dem Portal eintragen (Seite " +
+        "„Konto“). Noch geht es auch ohne – später wird er verlangt.";
+  }
+
   document.getElementById("modellnamen").textContent =
     daten.modelle.map((m) => m.name).join(" oder ");
 

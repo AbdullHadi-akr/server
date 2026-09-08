@@ -28,7 +28,7 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import config
+from . import benutzer, config
 
 # Pfade, die tatsaechlich einen Slot belegen - nur die werden mitgezaehlt.
 SLOT_PFADE = ("/api/chat", "/api/generate", "/v1/chat/completions",
@@ -39,18 +39,29 @@ UEBERSPRINGEN = {"connection", "keep-alive", "proxy-authenticate",
                  "proxy-authorization", "te", "trailer", "transfer-encoding",
                  "upgrade", "host", "content-length"}
 
+# Zusaetzlich in der Anfrage: Der Zugangsschluessel gilt dem Portal, nicht
+# Ollama - er hat dort nichts zu suchen.
+UEBERSPRINGEN_ANFRAGE = UEBERSPRINGEN | {"authorization", "x-api-key"}
+
+# Diese Pfade bleiben ohne Schluessel erreichbar: VS Code fragt damit die
+# Modelle ab, und die Erreichbarkeitspruefung soll ohne Konto funktionieren.
+OFFENE_PFADE = ("/api/version", "/api/tags", "/v1/models")
+
 _schloss = threading.Lock()
 _aktive = {}                      # laufende Nummer -> {modell, start, pfad}
 _zaehler = itertools.count(1)
-_gesamt = {"anfragen": 0, "fehler": 0}
+_gesamt = {"anfragen": 0, "fehler": 0, "ohneToken": 0, "abgewiesen": 0}
 _laeuft = False
 
 
-def _anmelden(modell, pfad):
+def _anmelden(modell, pfad, benutzername=""):
     nummer = next(_zaehler)
     with _schloss:
-        _aktive[nummer] = {"modell": modell, "start": time.time(), "pfad": pfad}
+        _aktive[nummer] = {"modell": modell, "start": time.time(), "pfad": pfad,
+                           "benutzer": benutzername or "(ohne Token)"}
         _gesamt["anfragen"] += 1
+        if not benutzername:
+            _gesamt["ohneToken"] += 1
     return nummer
 
 
@@ -87,14 +98,58 @@ def zustand(slots_je_modell):
         modelle.append(gruppe)
     modelle.sort(key=lambda m: m["modell"])
 
+    je_benutzer = {}
+    for eintrag in laufend:
+        name = eintrag.get("benutzer") or "(ohne Token)"
+        je_benutzer[name] = je_benutzer.get(name, 0) + 1
+
     return {
         "ok": True,
         "aktiv": bool(_laeuft),
         "port": config.PROXY_PORT,
         "gesamtAktiv": len(laufend),
         "modelle": modelle,
+        "benutzer": [{"name": n, "aktiv": a} for n, a in
+                     sorted(je_benutzer.items())],
+        "tokenPflicht": config.TOKEN_PFLICHT,
         "seitStart": gesamt,
     }
+
+
+def _schluessel_aus(handler):
+    """Liest den Zugangsschluessel aus der Anfrage."""
+    kopf = handler.headers.get("Authorization") or ""
+    if kopf.lower().startswith("bearer "):
+        return kopf[7:].strip()
+    return (handler.headers.get("X-Api-Key") or "").strip()
+
+
+def anmeldung_pruefen(handler, pfad):
+    """Bestimmt den Benutzer zur Anfrage.
+
+    Liefert (benutzername, fehlermeldung). Ist die Meldung gesetzt, wurde die
+    Anfrage abgewiesen. Im Duldungsmodus (TOKEN_PFLICHT=false) laufen Anfragen
+    ohne Schluessel weiter durch und werden nur gezaehlt - so bricht bei der
+    Umstellung niemandem der Chat weg.
+    """
+    if any(pfad.startswith(p) for p in OFFENE_PFADE):
+        return "", None
+
+    schluessel = _schluessel_aus(handler)
+    if schluessel:
+        konto = benutzer.finde_nach_token(schluessel)
+        if konto:
+            return konto["name"], None
+        return "", ("Der Zugangsschluessel ist unbekannt oder das Konto ist "
+                    "gesperrt. Einen neuen Schluessel gibt es im Portal unter "
+                    "/konto.")
+
+    if config.TOKEN_PFLICHT:
+        return "", ("Es fehlt der Zugangsschluessel. In VS Code unter "
+                    "'Chat: Manage Language Models' beim Anbieter den "
+                    "persoenlichen Schluessel aus dem Portal (/konto) "
+                    "hinterlegen.")
+    return "", None
 
 
 def _modell_aus(rumpf):
@@ -134,12 +189,20 @@ def durchreichen(handler, rumpf=None):
     if rumpf is None:
         rumpf = rumpf_lesen(handler)
     pfad = urllib.parse.urlsplit(handler.path).path
+
+    benutzername, abweisung = anmeldung_pruefen(handler, pfad)
+    if abweisung:
+        with _schloss:
+            _gesamt["abgewiesen"] += 1
+        _antwort_senden(handler, 401, {"error": abweisung})
+        return
+
     zaehlen = any(pfad.startswith(p) for p in SLOT_PFADE)
-    nummer = _anmelden(_modell_aus(rumpf), pfad) if zaehlen else None
+    nummer = _anmelden(_modell_aus(rumpf), pfad, benutzername) if zaehlen else None
 
     ziel = urllib.parse.urlsplit(config.OLLAMA_URL)
     kopfzeilen = {name: wert for name, wert in handler.headers.items()
-                  if name.lower() not in UEBERSPRINGEN}
+                  if name.lower() not in UEBERSPRINGEN_ANFRAGE}
     kopfzeilen["Host"] = ziel.netloc
     if rumpf:
         kopfzeilen["Content-Length"] = str(len(rumpf))
@@ -202,18 +265,22 @@ def _antwort_durchreichen(handler, antwort):
         handler.wfile.flush()
 
 
-def _fehler_melden(handler, fehler):
-    meldung = json.dumps({
-        "error": f"Portal-Proxy erreicht Ollama nicht: {fehler}",
-    }).encode("utf-8")
+def _antwort_senden(handler, status, daten):
+    """Kurze JSON-Antwort - die Meldung zeigt VS Code dem Nutzer an."""
+    meldung = json.dumps(daten).encode("utf-8")
     try:
-        handler.send_response(502)
+        handler.send_response(status)
         handler.send_header("Content-Type", "application/json")
         handler.send_header("Content-Length", str(len(meldung)))
         handler.end_headers()
         handler.wfile.write(meldung)
     except OSError:
         pass  # Client ist schon weg
+
+
+def _fehler_melden(handler, fehler):
+    _antwort_senden(handler, 502,
+                    {"error": f"Portal-Proxy erreicht Ollama nicht: {fehler}"})
 
 
 class _Handler(BaseHTTPRequestHandler):

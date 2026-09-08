@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "2.3 (Benutzer und Rollen)"
+VERSION = "2.4 (Zugangsschluessel)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -74,6 +74,13 @@ PROXY_PORT = int(os.environ.get("PROXY_PORT", str(PORT)))
 # Zeitlimit fuer den Verbindungsaufbau zu Ollama. Auf die Antwort wird
 # unbegrenzt gewartet - Generierungen dauern lange.
 PROXY_TIMEOUT = float(os.environ.get("PROXY_TIMEOUT", "30"))
+
+# Muessen Chat-Anfragen einen gueltigen Zugangsschluessel mitbringen?
+# Standard ist der Duldungsmodus: Anfragen ohne Schluessel laufen weiter durch
+# und werden als "(ohne Token)" gezaehlt. Erst umschalten, wenn die Uebersicht
+# zeigt, dass niemand mehr ohne Schluessel kommt - sonst bricht der Chat.
+TOKEN_PFLICHT = os.environ.get("TOKEN_PFLICHT", "false").lower() in (
+    "1", "true", "yes", "ja")
 
 # --- Verlauf ----------------------------------------------------------------
 # Aufzeichnung der Messwerte in /data/verlauf.sqlite.

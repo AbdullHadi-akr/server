@@ -31,6 +31,11 @@ services:
       # Gueltigkeit einer Anmeldung in Sekunden (Standard 8 Stunden).
       SITZUNGSDAUER: "28800"
 
+      # Muessen Chat-Anfragen einen Zugangsschluessel mitbringen? Erst auf
+      # "true" schalten, wenn die Uebersicht zeigt, dass niemand mehr ohne
+      # Schluessel anfragt - sonst bricht der Chat der Betroffenen ab.
+      TOKEN_PFLICHT: "false"
+
       # Proxy-Modus. Auf "false" setzen, wenn das Portal nicht im Weg des
       # Chat-Verkehrs stehen soll - dann tragen die Nutzer wieder den direkten
       # Ollama-Port ein.

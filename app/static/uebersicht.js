@@ -279,6 +279,11 @@ function liveKarte(live, slots) {
       (live.modelleGeladen ? "" :
         " (kein Modell geladen – gerechnet wird mit einem)")));
   }
+  if (live.jeBenutzer && live.jeBenutzer.length) {
+    const zeile = el("p", "hinweis", "Gerade aktiv: " + live.jeBenutzer
+      .map((b) => b.name + " (" + b.aktiv + ")").join(" · "));
+    karte.appendChild(zeile);
+  }
   karte.appendChild(el("p", "hinweis", live.quelle === "proxy"
     ? "Exakt gezählt: Die Anfragen laufen durch den Portal-Proxy auf Port " +
       live.port + ", der jede laufende Anfrage samt Modell kennt."

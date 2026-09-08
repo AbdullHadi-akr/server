@@ -202,6 +202,7 @@ class Handler(BaseHTTPRequestHandler):
                 "altUrl": config.ALT_OLLAMA_URL,
                 "proxyAktiv": config.PROXY_AKTIV,
                 "ueberProxy": f":{config.PROXY_PORT}" in config.PUBLIC_OLLAMA_URL,
+                "tokenPflicht": config.TOKEN_PFLICHT,
                 "modelle": config.MODELS,
             })
         elif pfad == "/api/vscode-config":
@@ -400,6 +401,9 @@ class Handler(BaseHTTPRequestHandler):
                 "eigene": 0,
                 "port": config.PROXY_PORT,
                 "jeModell": proxy_daten["modelle"],
+                "jeBenutzer": proxy_daten["benutzer"],
+                "ohneToken": proxy_daten["seitStart"].get("ohneToken", 0),
+                "tokenPflicht": proxy_daten["tokenPflicht"],
             }
 
         try:

@@ -67,6 +67,7 @@ Alles über Umgebungsvariablen:
 | `VERLAUF_TAGE`      | `30`                                | Aufbewahrung der Messpunkte. |
 | `PROXY_AKTIV`       | `true`                              | Proxy vor Ollama. |
 | `PROXY_PORT`        | wie `PORT`                          | Abweichender Wert startet einen zweiten Listener. |
+| `TOKEN_PFLICHT`     | `false`                             | `true` weist Anfragen ohne Zugangsschlüssel ab. |
 | `GPU_NAME`          | `NVIDIA A100`                       | Anzeigename der GPU. |
 | `GPU_VRAM_GIB`      | `80`                                | Rückfallwert, falls `nvidia-smi` nicht erreichbar ist. |
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
@@ -276,6 +277,33 @@ jederzeit parallel nutzbar. Die
 Plausibilitätsprüfung **warnt**, wenn die angezeigte Adresse auf den Proxy-Port
 zeigt, der Proxy aber abgeschaltet ist – der wahrscheinlichste Bedienfehler nach
 der Umstellung.
+
+## Zugangsschlüssel für die Chat-Anfragen
+
+Damit das Portal weiß, **wer** eine Anfrage schickt, weist sich jeder Nutzer mit
+seinem persönlichen Schlüssel aus. VS Code fragt beim Anlegen des Custom
+Endpoints nach einem API-Key – dort gehört er hinein; VS Code schickt ihn als
+`Authorization: Bearer …` mit. Der Proxy erkennt daran das Konto, ordnet laufende
+Anfragen zu und reicht den Header **nicht** an Ollama weiter.
+
+Drei Fälle:
+
+| Anfrage | Duldungsmodus (`TOKEN_PFLICHT=false`) | Pflicht (`true`) |
+|---|---|---|
+| gültiger Schlüssel | durchgereicht, Konto zugeordnet | dito |
+| falscher Schlüssel | **401** mit Hinweis auf `/konto` | dito |
+| kein Schlüssel | durchgereicht, als „(ohne Token)" gezählt | **401** |
+
+`/api/version`, `/api/tags` und `/v1/models` bleiben in beiden Fällen offen –
+sonst funktionierten Modellabruf und Erreichbarkeitstests nicht mehr.
+
+> **Umstellung ohne Ausfall:** Im Duldungsmodus starten und auf der Übersicht
+> verfolgen, wie viele Anfragen noch ohne Schlüssel kommen. Erst wenn dort null
+> steht, `TOKEN_PFLICHT=true` setzen. Wer sofort umschaltet, sperrt jeden aus,
+> der seinen Schlüssel noch nicht eingetragen hat.
+
+Ein gesperrtes Konto verliert den Zugang sofort – der Schlüssel gilt nur, solange
+das Konto aktiv ist.
 
 ## Verlaufsseite (`/verlauf`)
 
