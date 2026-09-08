@@ -1,4 +1,4 @@
-# Modell-Portal – lokale Modelle in VS Code
+# Modell-Portal: lokale Modelle in VS Code
 
 Ein kleines Web-Portal im Docker-Container, das auf **Port 5021** läuft. Es erklärt
 Schritt für Schritt, wie die lokal auf **Port 5020** unter Ollama laufenden Modelle
@@ -7,7 +7,7 @@ prüft auf Knopfdruck, ob Ollama korrekt läuft und die Modelle sauber antworten
 
 ## Die drei Seiten
 
-Die Navigation baut sich aus dem Anmeldestatus auf – jeder sieht nur die Reiter,
+Die Navigation baut sich aus dem Anmeldestatus auf. Jeder sieht nur die Reiter,
 die er auch nutzen kann:
 
 | Zustand | Reiter |
@@ -30,7 +30,7 @@ die er auch nutzen kann:
 | `/konto` | angemeldet | Eigener Zugangsschlüssel und eigenes Passwort |
 
 Wer eine geschützte Seite ohne Anmeldung aufruft, landet auf `/anmelden` und nach
-der Anmeldung wieder dort, wo er hinwollte. Die Navigation ist keine Absicherung –
+der Anmeldung wieder dort, wo er hinwollte. Die Navigation ist keine Absicherung:
 der Server prüft die Rolle bei jedem Aufruf selbst und antwortet sonst mit 403.
 
 ## Starten
@@ -49,7 +49,7 @@ Danach im Browser: <http://localhost:5021> bzw. `http://<host>:5021`.
 
 ## Aktualisieren
 
-Ein `docker compose up -d` allein baut das Image **nicht** neu – der Container
+Ein `docker compose up -d` allein baut das Image **nicht** neu, der Container
 läuft dann weiter mit dem alten Stand und neue Seiten fehlen. Nach jedem
 `git pull` daher:
 
@@ -68,7 +68,7 @@ Alles über Umgebungsvariablen:
 | Variable            | Standard                            | Bedeutung |
 |---------------------|-------------------------------------|-----------|
 | `OLLAMA_URL`        | `http://AZEU-DEW-DEVGPU-02:5020`    | Adresse, unter der **das Portal** Ollama erreicht: Prüfungen, Modelltests, Status, Auslastung. |
-| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5021`   | Adresse, die den **Nutzern** angezeigt wird – das Portal selbst. |
+| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5021`   | Adresse, die den **Nutzern** angezeigt wird, das Portal selbst. |
 | `ALT_OLLAMA_URL`    | `http://azeu-dew-devappl-01:5020`   | Vorherige Adresse, nur für den Umstellungshinweis. Leer = kein Hinweis. |
 | `VENDOR_NAME`       | `A100`                              | Name des Anbieter-Eintrags und Suffix der Modellnamen. |
 | `PORT` / `HOST`     | `5021` / `0.0.0.0`                  | Bindung des Portals. |
@@ -93,7 +93,7 @@ Alles über Umgebungsvariablen:
 | `STANDARD_PARALLEL` | `4`                                 | Aktueller Wert von `OLLAMA_NUM_PARALLEL`. |
 | `STANDARD_KONTEXT`  | `50000`                             | Aktueller Wert von `OLLAMA_CONTEXT_LENGTH`. |
 | `PROBE_TIMEOUT`     | `10`                                | Timeout (s) für Erreichbarkeits-Prüfungen. |
-| `CHAT_TIMEOUT`      | `300`                               | Timeout (s) für Testanfragen – großzügig wegen Kaltstart des Modells. |
+| `CHAT_TIMEOUT`      | `300`                               | Timeout (s) für Testanfragen, großzügig wegen Kaltstart des Modells. |
 
 Läuft Ollama auf dem Docker-Host selbst, ist
 `OLLAMA_URL=http://host.docker.internal:5020` der richtige Wert (die
@@ -103,14 +103,14 @@ Läuft Ollama auf dem Docker-Host selbst, ist
 
 Der Knopf **„Server prüfen“** testet der Reihe nach:
 
-1. **Namensauflösung** – lässt sich der Hostname aus `OLLAMA_URL` im Container
+1. **Namensauflösung**: lässt sich der Hostname aus `OLLAMA_URL` im Container
    auflösen? (Der Container nutzt nicht zwingend denselben DNS wie dein PC.)
-2. **TCP-Verbindung** – nimmt Port 5020 Verbindungen an? Trennt „Connection
+2. **TCP-Verbindung**: nimmt Port 5020 Verbindungen an? Trennt „Connection
    refused“ (Ollama lauscht nur auf 127.0.0.1) von „Timeout“ (Firewall).
-3. `GET /api/version` – antwortet dort wirklich Ollama?
-4. `GET /api/tags` – Liste der installierten Modelle.
+3. `GET /api/version`: antwortet dort wirklich Ollama?
+4. `GET /api/tags`: Liste der installierten Modelle.
 5. Sind `qwen3:30b-a3b` und `qwen3-coder:30b` installiert?
-6. `GET /v1/models` – steht der OpenAI-kompatible Endpunkt bereit? Genau den
+6. `GET /v1/models`: steht der OpenAI-kompatible Endpunkt bereit? Genau den
    spricht VS Code über `apiType: "chat-completions"` an.
 
 Jeder fehlgeschlagene Schritt nennt die konkrete Ursache samt Behebung; auf
@@ -120,14 +120,14 @@ irreführende Folgefehler zu melden.
 Der Knopf **„Modelle live testen“** schickt zusätzlich pro Modell eine echte
 Anfrage an `POST /v1/chat/completions`, misst die Antwortzeit (und weist auf einen
 Kaltstart hin) und prüft mit einem Beispiel-Werkzeug, ob **Tool Calling**
-tatsächlich funktioniert – schlägt das fehl, sollte in der
+tatsächlich funktioniert. Schlägt das fehl, sollte in der
 `chatLanguageModels.json` `"toolCalling": false` gesetzt werden.
 
 qwen3 ist ein Reasoning-Modell und schreibt seinen Gedankengang in
 `<think>…</think>` vor die Antwort. Der Test unterdrückt das per `/no_think`,
 entfernt verbliebene Denkblöcke aus der Antwort und gibt genug Token frei, damit
 das Modell nicht mitten im Gedankengang abgeschnitten wird. Bleibt trotzdem kein
-sichtbarer Text übrig, meldet das Portal eine **Warnung** statt eines Fehlers –
+sichtbarer Text übrig, meldet das Portal eine **Warnung** statt eines Fehlers:
 der Endpunkt funktioniert dann trotzdem. Dasselbe gilt für fehlendes Tool
 Calling: eine Einschränkung, kein Ausfall.
 
@@ -136,16 +136,16 @@ Calling: eine Einschränkung, kein Ausfall.
 Die zweite Seite des Portals steuert den Container, in dem Ollama läuft, und
 legt Nutzeranzahl und Kontextlänge aus.
 
-**Status und Steuerung** – Zustand, Laufzeit, Health, Image, Neustart-Regel,
+**Status und Steuerung**: Zustand, Laufzeit, Health, Image, Neustart-Regel,
 GPU-Zuweisung, CPU-/RAM-Verbrauch und die gesetzten `OLLAMA_*`-Variablen. Dazu
 Knöpfe für Neustart, Start, Stopp und die letzten Log-Zeilen. Zusätzlich zeigt
 die Seite über `/api/ps`, welche Modelle gerade im GPU-Speicher liegen und wie
-viel VRAM sie **tatsächlich** belegen – die Gegenprobe zur Schätzung.
+viel VRAM sie **tatsächlich** belegen, die Gegenprobe zur Schätzung.
 
-**VRAM-Rechner** – Zwei Regler für Nutzeranzahl (`OLLAMA_NUM_PARALLEL`) und
+**VRAM-Rechner**: Zwei Regler für Nutzeranzahl (`OLLAMA_NUM_PARALLEL`) und
 Kontext je Nutzer (`OLLAMA_CONTEXT_LENGTH`), dazu KV-Cache-Datentyp und Anzahl
 gleichzeitig geladener Modelle. Die Seite zeigt sofort den voraussichtlichen
-Verbrauch, die Auslastung der GPU und – falls es nicht passt – wie viele Nutzer
+Verbrauch, die Auslastung der GPU und, falls es nicht passt, wie viele Nutzer
 bzw. wie viel Kontext stattdessen möglich wären.
 
 ```
@@ -155,13 +155,13 @@ KV-Cache = 96 KiB/Token × Nutzeranzahl × Kontext × KV-Faktor
 
 Die 96 KiB je Token folgen aus dem Aufbau von qwen3-30b-a3b: 2 (K und V) ×
 4 KV-Heads × 128 Head-Dim × 48 Layer × 2 Byte (f16). Ollama legt pro parallelem
-Slot einen eigenen KV-Cache an – der Kontext gilt also **je Nutzer**.
+Slot einen eigenen KV-Cache an, der Kontext gilt also **je Nutzer**.
 Gegenprobe mit den gemessenen Werten: 4 Nutzer × 50 000 Token ergeben
 17,32 GiB Gewichte + 18,31 GiB KV + 1,40 GiB Puffer = **37,03 GiB**; gemessen
 wurden 37 GiB. Beide Modelle gleichzeitig geladen belegen damit 74 GiB der
 80 GiB einer A100.
 
-**Einstellungen übernehmen** – Docker kann die Umgebung eines bestehenden
+**Einstellungen übernehmen**: Docker kann die Umgebung eines bestehenden
 Containers nicht ändern. Das Portal stoppt den Container daher, benennt ihn als
 Sicherung um (`ollama-vorher-<Zeitstempel>`) und legt ihn mit identischer
 Konfiguration, aber neuen Werten neu an: Volumes, Portbindungen,
@@ -189,7 +189,7 @@ Zugriff auf den Docker-Socket entspricht faktisch Root-Rechten auf dem Host.
 Deshalb:
 
 - Der Containername kommt ausschließlich aus `OLLAMA_CONTAINER`, nie aus der
-  Anfrage des Browsers – über das Portal lässt sich kein anderer Container
+  Anfrage des Browsers. Über das Portal lässt sich kein anderer Container
   ansprechen.
 - `DOCKER_STEUERUNG=false` schaltet alle schreibenden Aktionen ab; die Seite
   bleibt als reine Statusanzeige nutzbar.
@@ -199,23 +199,23 @@ Deshalb:
 
 ## Übersichtsseite (`/uebersicht`)
 
-Ohne Anmeldung erreichbar und rein lesend – gedacht für alle, die nur wissen
+Ohne Anmeldung erreichbar und rein lesend, gedacht für alle, die nur wissen
 wollen, ob der Dienst läuft und wie ausgelastet er ist. Aktualisiert sich alle
 20 Sekunden und zeigt:
 
-- **Dienst** – Container-Zustand, Laufzeit, GPU-Zuweisung, konfigurierte Slots
+- **Dienst**: Container-Zustand, Laufzeit, GPU-Zuweisung, konfigurierte Slots
   und Kontextlänge, CPU- und RAM-Verbrauch.
-- **GPU** – die echten Werte der Karte, über `nvidia-smi` im Ollama-Container
+- **GPU**, die echten Werte der Karte, über `nvidia-smi` im Ollama-Container
   gemessen: belegter und freier VRAM, Auslastung, Temperatur, Leistungsaufnahme.
   Darunter, was davon auf Ollama entfällt (`/api/ps`) neben dem rechnerisch
   erwarteten Wert. Ist `nvidia-smi` nicht erreichbar, sagt die Seite das und der
   Rechner nutzt weiter den konfigurierten Wert `GPU_VRAM_GIB`.
-- **Hinweise** – Widersprüche zwischen VS-Code-Konfiguration, Container-Umgebung
+- **Hinweise**: Widersprüche zwischen VS-Code-Konfiguration, Container-Umgebung
   und vorhandenem Speicher (siehe unten).
-- **Modelle und Slots** – je geladenem Modell der belegte VRAM, die Anzahl
+- **Modelle und Slots**: je geladenem Modell der belegte VRAM, die Anzahl
   Slots mit ihrem Kontext, der Gesamtkontext und bis wann Ollama das Modell
   bereithält. Liegt ein Modell nur teilweise auf der GPU, wird das markiert.
-- **Slot-Auslastung** – live und im Rückblick, mit Knopf zum sofortigen
+- **Slot-Auslastung**: live und im Rückblick, mit Knopf zum sofortigen
   Neuladen und abschaltbarer Aktualisierung alle 10 Sekunden.
 
 ### Wie die Slot-Auslastung gemessen wird
@@ -223,12 +223,12 @@ wollen, ob der Dienst läuft und wie ausgelastet er ist. Aktualisiert sich alle
 Ollama bietet keine Schnittstelle für belegte Slots. Das Portal misst daher
 auf zwei voneinander unabhängigen Wegen:
 
-**Gesamtzahl der Slots.** `OLLAMA_NUM_PARALLEL` gilt **je Modell** – Ollama
+**Gesamtzahl der Slots.** `OLLAMA_NUM_PARALLEL` gilt **je Modell**: Ollama
 hält für jedes geladene Modell einen eigenen Satz Slots vor. Bei 4 parallelen
 Anfragen und zwei geladenen Modellen sind es also 8 Slots. Die Übersicht rechnet
 entsprechend und schreibt die Herleitung dazu.
 
-**Live – gerade aktive Sitzungen.** Das Portal liest über den Docker-Socket
+**Live, gerade aktive Sitzungen.** Das Portal liest über den Docker-Socket
 `/proc/net/tcp` *im Ollama-Container* und zählt die hergestellten Verbindungen
 auf dessen Port. Angezeigt wird das als Slot-Leiste („aktiv“ / „frei“); mehr
 Sitzungen als Slots werden als wartend markiert. Eigene Statusabfragen des
@@ -236,26 +236,26 @@ Portals rechnet es anhand seiner eigenen Adresse heraus, `LISTEN`- und
 `TIME_WAIT`-Einträge zählen nicht mit.
 
 > VS Code hält je laufendem Chat eine Verbindung offen. Nach einer Antwort
-> kann sie durch Keep-Alive noch kurz bestehen bleiben – kurzzeitig kann die
+> kann sie durch Keep-Alive noch kurz bestehen bleiben, kurzzeitig kann die
 > Anzeige daher etwas höher liegen als die Zahl der wirklich rechnenden
 > Anfragen. Und eine Verbindung verrät nicht, welches Modell sie nutzt: Die
 > Zahl gilt für alle geladenen Modelle zusammen, nicht je Modell.
 
-**Rückblick – die letzten 15 und 60 Minuten.** Aus dem GIN-Zugriffslog des
+**Rückblick, die letzten 15 und 60 Minuten.** Aus dem GIN-Zugriffslog des
 Containers (Endzeitpunkt und Dauer je Anfrage) rekonstruiert das Portal das
 Zeitfenster jeder Anfrage und ermittelt per Sweep-Line die höchste
 gleichzeitige Belegung, dazu Anzahl, mittlere Belegung, Median- und
 Maximaldauer sowie Fehler.
 
 > Eine Logzeile entsteht erst, wenn die Anfrage **beantwortet** ist. Laufende
-> Sitzungen stehen deshalb ausschließlich in der Live-Anzeige – genau deshalb
+> Sitzungen stehen deshalb ausschließlich in der Live-Anzeige, genau deshalb
 > gibt es beide Messungen. Und da das Zugriffslog das Modell nicht mitschreibt,
 > gilt der Rückblick für den Ollama-Dienst insgesamt.
 
 Ist die Live-Messung nicht möglich (kein Docker-Socket, `exec` untersagt), sagt
 die Seite das und der Rückblick funktioniert unabhängig davon weiter.
 
-## Proxy-Modus – exakte Slots je Modell
+## Proxy-Modus: exakte Slots je Modell
 
 Weder die Ollama-API noch das Zugriffslog verraten, welches Modell eine gerade
 laufende Anfrage belegt. Wer den Verkehr durch das Portal leitet, bekommt genau
@@ -263,7 +263,7 @@ das.
 
 Der Proxy hängt **am selben Port wie das Portal** (5021): Was keine Portal-Route
 und keine statische Datei ist, geht an Ollama weiter. Das geht auf, weil sich die
-Pfade nicht überschneiden – das Portal benennt seine Endpunkte deutsch
+Pfade nicht überschneiden, das Portal benennt seine Endpunkte deutsch
 (`/api/nutzung`, `/api/verlauf`, `/api/geladen` …), Ollama englisch (`/api/chat`,
 `/api/tags`, `/api/ps` …). **Wer neue Portal-Endpunkte ergänzt, muss diese
 Trennung wahren.** So genügt ein einziger offener Port für Portal und Modelle.
@@ -278,31 +278,31 @@ Ist eine strikte Trennung gewünscht, startet ein abweichender `PROXY_PORT` eine
 zweiten Listener auf eigenem Port; der muss dann zusätzlich veröffentlicht werden.
 
 **Der Proxy ist in Betrieb.** `PUBLIC_OLLAMA_URL` zeigt auf
-`http://azeu-dew-devappl-01:5021` – dieselbe Adresse wie das Portal selbst. Wer seine `chatLanguageModels.json` vor der Umstellung angelegt
-hat, muss die `url` bei beiden Modellen einmalig ändern – die Seite weist mit
+`http://azeu-dew-devappl-01:5021`, dieselbe Adresse wie das Portal selbst. Wer seine `chatLanguageModels.json` vor der Umstellung angelegt
+hat, muss die `url` bei beiden Modellen einmalig ändern, die Seite weist mit
 einem Hinweis darauf hin und nennt beide Adressen. Die alte Adresse (Port 5020)
 funktioniert weiter, liefert aber keine Zahlen je Modell.
 
 **Reihenfolge beim Ausrollen:** erst `docker compose up -d --build`, dann von
 einem Arbeitsplatz aus `curl http://azeu-dew-devappl-01:5021/api/version`
-gegenprüfen – kommt die Ollama-Version zurück, reicht das Portal korrekt durch –
+gegenprüfen. Kommt die Ollama-Version zurück, reicht das Portal korrekt durch,
 und **erst danach** die Nutzer bitten, umzustellen. Ein zusätzlicher Port in der
 Firewall ist nicht nötig: Port 5021 war für die Portalseite ohnehin offen.
 
-**Was das kostet:** Das Portal ist damit im kritischen Pfad – ist es aus,
+**Was das kostet:** Das Portal ist damit im kritischen Pfad. Ist es aus,
 funktioniert für umgestellte Nutzer kein Chat mehr. Rückweg: `PROXY_AKTIV=false`
 und `PUBLIC_OLLAMA_URL` zurück auf `http://azeu-dew-devappl-01:5020`. Da das
 Portal die Anfragen nur weiterreicht, ist der direkte Weg über Port 5020
 jederzeit parallel nutzbar. Die
 Plausibilitätsprüfung **warnt**, wenn die angezeigte Adresse auf den Proxy-Port
-zeigt, der Proxy aber abgeschaltet ist – der wahrscheinlichste Bedienfehler nach
+zeigt, der Proxy aber abgeschaltet ist, der wahrscheinlichste Bedienfehler nach
 der Umstellung.
 
 ## Reservierungen
 
 Wer weiß, dass er nachmittags eine größere Aufgabe rechnen lässt, sichert sich
 Kapazität: *„3 Slots auf qwen3:30b-a3b von 13 bis 15 Uhr."* Während des Fensters
-hält das Portal diese Slots frei – andere Nutzer dürfen nur die übrigen belegen,
+hält das Portal diese Slots frei, andere Nutzer dürfen nur die übrigen belegen,
 darüber hinausgehende Anfragen weist der Proxy mit **429** und einer Begründung
 ab, die nennt, wer bis wann reserviert hat.
 
@@ -311,7 +311,7 @@ auch wenn der Reservierende gerade nichts rechnet. Das ist für ihn verlässlich
 und der Grund für die Begrenzung der Fensterlänge.
 
 **Zeitangaben** rechnet der Browser in Unix-Zeit um und stellt sie auch selbst
-dar – er kennt die Zeitzone des Nutzers. Eine reine Wanduhrzeit ohne Zonenangabe
+dar, er kennt die Zeitzone des Nutzers. Eine reine Wanduhrzeit ohne Zonenangabe
 würde der Server in *seiner* Zone deuten; läuft der Container auf UTC und sitzt
 der Nutzer in Berlin, wären das zwei Stunden Unterschied. Damit auch die
 serverseitigen Texte stimmen (etwa „reserviert bis 15:00" in der 429-Meldung),
@@ -354,7 +354,7 @@ Die Übersicht zeigt laufende Reservierungen als Streifen, die Seite
 
 Damit das Portal weiß, **wer** eine Anfrage schickt, weist sich jeder Nutzer mit
 seinem persönlichen Schlüssel aus. VS Code fragt beim Anlegen des Custom
-Endpoints nach einem API-Key – dort gehört er hinein; VS Code schickt ihn als
+Endpoints nach einem API-Key, dort gehört er hinein; VS Code schickt ihn als
 `Authorization: Bearer …` mit. Der Proxy erkennt daran das Konto, ordnet laufende
 Anfragen zu und reicht den Header **nicht** an Ollama weiter.
 
@@ -366,7 +366,7 @@ Drei Fälle:
 | falscher Schlüssel | **401** mit Hinweis auf `/konto` | dito |
 | kein Schlüssel | durchgereicht, als „(ohne Token)" gezählt | **401** |
 
-`/api/version`, `/api/tags` und `/v1/models` bleiben in beiden Fällen offen –
+`/api/version`, `/api/tags` und `/v1/models` bleiben in beiden Fällen offen,
 sonst funktionierten Modellabruf und Erreichbarkeitstests nicht mehr.
 
 > **Umstellung ohne Ausfall:** Im Duldungsmodus starten und auf der Übersicht
@@ -374,7 +374,7 @@ sonst funktionierten Modellabruf und Erreichbarkeitstests nicht mehr.
 > steht, `TOKEN_PFLICHT=true` setzen. Wer sofort umschaltet, sperrt jeden aus,
 > der seinen Schlüssel noch nicht eingetragen hat.
 
-Ein gesperrtes Konto verliert den Zugang sofort – der Schlüssel gilt nur, solange
+Ein gesperrtes Konto verliert den Zugang sofort, der Schlüssel gilt nur, solange
 das Konto aktiv ist.
 
 ## Verlaufsseite (`/verlauf`)
@@ -390,7 +390,7 @@ und Fehler. Die Seite zeigt daraus vier Kurven für 1 Stunde, 24 Stunden, 7 oder
 - Anfragen werden ohne Doppelzählung erfasst: Statt Uhren abzugleichen, merkt sich
   die Aufzeichnung den Zeitstempel des jüngsten bereits gezählten Logeintrags.
 - Aufgeräumt wird stündlich; Messpunkte älter als `VERLAUF_TAGE` fallen weg.
-- Die Diagramme sind selbst gezeichnetes SVG – keine externe Bibliothek, weil das
+- Die Diagramme sind selbst gezeichnetes SVG ohne externe Bibliothek, weil das
   Portal ohne Internetzugang läuft.
 - Fällt eine Quelle aus (kein Docker-Socket, Ollama nicht erreichbar), wird der
   Messpunkt trotzdem geschrieben; die fehlenden Felder bleiben leer.
@@ -406,29 +406,28 @@ den GPU-Server:
   dazu die Belegung der Platte im Modellverzeichnis (`df` im Container).
 - **Nachladen und Aktualisieren** über `ollama pull` mit Fortschrittsbalken.
   Der Vorgang läuft in einem Hintergrund-Thread; die Seite fragt den Stand
-  jede Sekunde ab. Es läuft immer nur ein Ladevorgang gleichzeitig – zwei
+  jede Sekunde ab. Es läuft immer nur ein Ladevorgang gleichzeitig, zwei
   würden sich Bandbreite und Platte streitig machen.
 - **Löschen.** Modelle, die in der `chatLanguageModels.json` der Nutzer stehen,
-  sind als solche markiert und verlangen eine ausdrückliche Bestätigung –
+  sind als solche markiert und verlangen eine ausdrückliche Bestätigung,
   sonst findet VS Code sie anschließend nicht mehr.
 
 ## Anleitung im Portal (`/anleitung`)
 
 Zehn Kacheln, dahinter je eine Erklärung: wofür ein Bereich da ist, was die
-Anzeigen bedeuten und wie die Zahlen zustande kommen. Ohne Anmeldung lesbar –
-sie muss gerade dann funktionieren, wenn jemand wissen will, warum etwas nicht
-geht.
+Anzeigen bedeuten und wie die Zahlen zustande kommen. Ohne Anmeldung lesbar, denn sie muss gerade dann funktionieren, wenn jemand
+wissen will, warum etwas nicht geht.
 
 - Einzelne Kapitel sind verlinkbar (`/anleitung#reservierungen`); Übersicht,
   Reservierungen und Einstellungen verweisen an den passenden Stellen dorthin.
-- Ein Filterfeld durchsucht auch den Fließtext – „VRAM" findet die beiden
+- Ein Filterfeld durchsucht auch den Fließtext, „VRAM" findet die beiden
   Kapitel, die es erklären.
 - „Alles anzeigen" klappt alle Kapitel untereinander auf, etwa zum Ausdrucken.
-- Kapitel zu Adminbereichen sind gekennzeichnet, bleiben aber für alle lesbar –
+- Kapitel zu Adminbereichen sind gekennzeichnet, bleiben aber für alle lesbar, denn
   ein neuer Administrator muss sie ja finden.
 
 Die Inhalte stehen als Datenstruktur in `app/static/anleitung-inhalt.js`, nicht
-als HTML-Text. **Wer Grenzwerte im Code ändert, ändert sie bitte dort mit** –
+als HTML-Text. **Wer Grenzwerte im Code ändert, ändert sie bitte dort mit**.
 die Anleitung nennt konkrete Zahlen (96 KiB je Token, 4 Stunden Höchstdauer,
 Viertelstundenraster), und eine Anleitung, die etwas anderes behauptet als die
 Software tut, richtet mehr Schaden an als keine.
@@ -440,7 +439,7 @@ Wirklichkeit auseinanderlaufen. Geprüft wird:
 
 | Prüfung | warum sie zählt |
 |---|---|
-| `maxInputTokens` > `OLLAMA_CONTEXT_LENGTH` | VS Code darf mehr senden, als ein Slot fasst – der Anfang der Unterhaltung wird stillschweigend abgeschnitten |
+| `maxInputTokens` > `OLLAMA_CONTEXT_LENGTH` | VS Code darf mehr senden, als ein Slot fasst, der Anfang der Unterhaltung wird stillschweigend abgeschnitten |
 | `maxInputTokens + maxOutputTokens` > Kontext | bei langen Unterhaltungen bleibt kein Platz für die volle Antwort |
 | geschätzter VRAM > gemessener GPU-Speicher | nennt die noch mögliche Nutzerzahl bzw. Kontextlänge |
 | Modell liegt nur teilweise auf der GPU | der Rest liegt im RAM, Antworten werden um ein Vielfaches langsamer |
@@ -464,7 +463,7 @@ Das Portal kennt zwei Rollen:
 
 **Beim ersten Start** legt der Aufruf einer geschützten Seite den ersten
 Administrator an (Benutzername + Passwort). Gab es vorher schon das gemeinsame
-Einzelpasswort in `/data/auth.json`, wird daraus automatisch der Admin `admin` –
+Einzelpasswort in `/data/auth.json`, wird daraus automatisch der Admin `admin`,
 der Hash wird übernommen, **das bisherige Passwort gilt unverändert weiter**, nur
 eben zusammen mit dem Benutzernamen `admin`. Alternativ legt `PORTAL_PASSWORT`
 beim allerersten Start einen Admin `admin` an.
@@ -475,11 +474,11 @@ mit 240 000 Iterationen und zufälligem Salz.
 **Zugangsschlüssel:** Jedes Konto hat einen Token (`mp_…`), mit dem sich später
 die Chat-Anfragen ausweisen. Gespeichert wird nur sein SHA-256-Abdruck, er ist
 deshalb **nur unmittelbar nach dem Erzeugen im Klartext sichtbar**. Verloren?
-Unter `/konto` einen neuen erzeugen – der alte wird damit ungültig.
+Unter `/konto` einen neuen erzeugen, der alte wird damit ungültig.
 
 **Eingebaute Sicherungen:** Der letzte aktive Admin kann weder herabgestuft noch
 gesperrt noch gelöscht werden, und niemand löscht sein eigenes Konto. Fünf
-Fehlversuche sperren für eine Minute – gezählt je Adresse *und* je Benutzername.
+Fehlversuche sperren für eine Minute, gezählt je Adresse *und* je Benutzername.
 Das Ändern von Rolle, Zustand oder Passwort beendet die offenen Sitzungen des
 betroffenen Kontos sofort.
 
@@ -488,7 +487,7 @@ betroffenen Kontos sofort.
 Beim ersten Aufruf von `/betrieb` fordert das Portal zum Festlegen eines
 Passworts auf (mindestens 8 Zeichen). Gespeichert wird ausschließlich ein
 **PBKDF2-HMAC-SHA256-Hash mit 240 000 Iterationen und zufälligem 16-Byte-Salz**
-unter `/data/auth.json` (Rechte 0600) – das Passwort selbst liegt nirgends auf
+unter `/data/auth.json` (Rechte 0600), das Passwort selbst liegt nirgends auf
 der Platte.
 
 Nach der Anmeldung erhält der Browser ein zufälliges Sitzungs-Token als
@@ -499,7 +498,7 @@ die betreffende Adresse für 60 Sekunden.
 
 Das Passwort lässt sich auf der Seite ändern; das beendet alle offenen
 Sitzungen. Vergessen? Dann `docker compose exec portal rm /data/auth.json`
-ausführen und den Container neu starten – der nächste Aufruf startet wieder
+ausführen und den Container neu starten, der nächste Aufruf startet wieder
 mit der Ersteinrichtung.
 
 Damit das Passwort einen Neustart überlebt, braucht das Portal ein Volume:
@@ -515,7 +514,7 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 
 > Das Cookie wird **ohne** `Secure`-Flag gesetzt, weil das Portal im internen
 > Netz über `http` ausgeliefert wird. Passwort und Cookie gehen damit
-> unverschlüsselt über das Netz – für ein internes Werkzeug vertretbar, für
+> unverschlüsselt über das Netz, für ein internes Werkzeug vertretbar, für
 > eine Veröffentlichung nach außen nicht. Dort gehört ein TLS-Reverse-Proxy
 > davor.
 
@@ -592,5 +591,5 @@ Dockerfile
 docker-compose.yml
 ```
 
-Das Portal nutzt ausschließlich die Python-Standardbibliothek – der Image-Build
+Das Portal nutzt ausschließlich die Python-Standardbibliothek, der Image-Build
 braucht daher keinen Zugriff auf PyPI.

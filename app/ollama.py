@@ -203,7 +203,7 @@ def diagnose():
         "beschreibung": f"GET {config.OLLAMA_URL}/v1/models",
         "ok": openai["ok"],
         "ms": openai["ms"],
-        "info": ("/v1/chat/completions steht bereit - genau diesen Pfad nutzt VS Code"
+        "info": ("/v1/chat/completions steht bereit, genau diesen Pfad nutzt VS Code"
                  if openai["ok"] else openai.get("fehler", "")),
         "hilfe": ("Der OpenAI-Modus ist ab Ollama 0.1.24 enthalten. "
                   "Aeltere Version bitte aktualisieren."),
@@ -267,7 +267,7 @@ def chat_test(model_id, tool_calling=False):
     nachricht, grund = _nachricht(antwort)
     if nachricht is None:
         ergebnis["ok"] = False
-        ergebnis["fehler"] = ("Unerwartetes Antwortformat - der Endpunkt liefert kein "
+        ergebnis["fehler"] = ("Unerwartetes Antwortformat, der Endpunkt liefert kein "
                               "OpenAI-kompatibles JSON: "
                               + json.dumps(antwort["body"])[:200])
         return ergebnis

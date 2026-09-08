@@ -15,7 +15,7 @@
     <p class="lead">
       Auf <code id="kopf-url">…</code> laufen die Modelle
       <strong>qwen3:30b-a3b</strong> und <strong>qwen3-coder:30b</strong> unter Ollama.
-      Diese Seite zeigt, wie du sie in den VS-Code-Chat einbindest – und prüft auf
+      Diese Seite zeigt, wie du sie in den VS-Code-Chat einbindest, und prüft auf
       Knopfdruck, ob der Server sauber antwortet.
     </p>
   </div>
@@ -55,7 +55,7 @@
           <pre id="konfig">wird geladen …</pre>
         </div>
         <p class="hinweis">
-          Beide Modelle stehen in einem gemeinsamen Anbieter-Eintrag – du musst
+          Beide Modelle stehen in einem gemeinsamen Anbieter-Eintrag, du musst
           die Prozedur also nur einmal durchlaufen.
         </p>
       </li>
@@ -101,7 +101,7 @@
 
       <dt>VS Code meldet, der Endpunkt sei nicht erreichbar</dt>
       <dd>Die <code>url</code> in der Konfiguration muss vom Arbeitsplatz aus
-      erreichbar sein – ohne <code>/v1</code> am Ende, das hängt VS&nbsp;Code
+      erreichbar sein, ohne <code>/v1</code> am Ende. Das hängt VS&nbsp;Code
       selbst an. Test im Terminal:
       <code id="curl-test">curl …/api/version</code></dd>
 

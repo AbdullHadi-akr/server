@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Betrieb – Ollama-Container</title>
+  <title>Ollama-Container</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
 </head>
@@ -14,7 +14,7 @@
     <h1>Einstellungen</h1>
     <p class="lead">
       Neustart des Containers und die Auslegung von Nutzeranzahl und
-      Kontextlänge. Änderungen wirken auf alle Nutzer – daher passwortgeschützt.
+      Kontextlänge. Änderungen wirken auf alle Nutzer und sind deshalb passwortgeschützt.
     </p>
   </div>
 </header>
@@ -54,7 +54,7 @@
   <section id="geladen">
     <h2>Aktuell im GPU-Speicher</h2>
     <p class="hinweis">
-      Von Ollama gemeldeter tatsächlicher Verbrauch (<code>/api/ps</code>) – die
+      Von Ollama gemeldeter tatsächlicher Verbrauch (<code>/api/ps</code>). Das ist die
       Gegenprobe zur Schätzung weiter unten. Nach einem Neustart ist die Liste
       leer, bis das erste Modell angefragt wird.
     </p>
@@ -64,7 +64,7 @@
   <section id="rechner">
     <h2>Auslegung: Nutzer, Kontext und VRAM <a class="erklaerung" href="/anleitung#begriffe">Rechenweg nachlesen</a></h2>
     <p class="hinweis">
-      <strong>Nutzeranzahl</strong> entspricht <code>OLLAMA_NUM_PARALLEL</code> –
+      <strong>Nutzeranzahl</strong> entspricht <code>OLLAMA_NUM_PARALLEL</code>:
       so viele Anfragen bearbeitet Ollama gleichzeitig. <strong>Kontext</strong>
       entspricht <code>OLLAMA_CONTEXT_LENGTH</code> und gilt <em>je Nutzer</em>;
       Ollama legt für jeden Slot einen eigenen KV-Cache an.
@@ -83,9 +83,9 @@
 
       <label for="f-kv">KV-Cache-Datentyp</label>
       <select id="f-kv">
-        <option value="f16" selected>f16 – Standard, höchste Qualität</option>
-        <option value="q8_0">q8_0 – halber KV-Speicher</option>
-        <option value="q4_0">q4_0 – viertel KV-Speicher</option>
+        <option value="f16" selected>f16 (Standard, höchste Qualität)</option>
+        <option value="q8_0">q8_0 (halber KV-Speicher)</option>
+        <option value="q4_0">q4_0 (viertel KV-Speicher)</option>
       </select>
 
       <label for="f-modelle">Gleichzeitig geladene Modelle</label>
@@ -106,7 +106,7 @@
     <p class="hinweis">
       Docker kann die Umgebung eines laufenden Containers nicht ändern. Beim
       Übernehmen wird der Container daher mit identischer Konfiguration, aber
-      neuen Werten neu erstellt – Volumes und heruntergeladene Modelle bleiben
+      neuen Werten neu erstellt. Volumes und heruntergeladene Modelle bleiben
       erhalten. Der alte Container wird als Sicherung aufbewahrt, laufende
       Anfragen brechen ab.
     </p>
@@ -122,7 +122,7 @@ KV-Cache = 96 KiB/Token × Nutzeranzahl × Kontext × KV-Faktor</pre>
       2 (K und V) × 4 KV-Heads × 128 Head-Dim × 48 Layer × 2 Byte (f16).
       Die Gewichte belegen 17,3 GiB (Q4_K_M), der Rechenpuffer wächst leicht
       mit der Slot-Zahl. Gegenprobe mit den gemessenen Werten: 4 Nutzer und
-      50 000 Token ergeben 37,0 GiB – gemessen wurden 37 GiB.
+      50 000 Token ergeben 37,0 GiB, gemessen wurden 37 GiB.
     </p>
   </section>
   <section id="modellverwaltung">

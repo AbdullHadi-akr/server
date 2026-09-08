@@ -263,7 +263,7 @@ async function laden() {
   }
   anzeige.textContent = daten.punkte.length
     ? daten.punkte.length + " Messpunkte"
-    : "Noch keine Daten – die Aufzeichnung beginnt mit dem Start des Portals.";
+    : "Noch keine Daten. Die Aufzeichnung beginnt mit dem Start des Portals.";
   kennzahlen(daten.zusammenfassung);
   alleZeichnen();
   if (tabelleSichtbar) tabelle();

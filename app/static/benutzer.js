@@ -66,7 +66,7 @@ async function listeLaden() {
 
     zeile.appendChild(el("td", null, b.aktiv ? "aktiv" : "gesperrt"));
     zeile.appendChild(el("td", null, b.erstellt));
-    zeile.appendChild(el("td", null, b.letzterLogin || "–"));
+    zeile.appendChild(el("td", null, b.letzterLogin || "noch nie"));
 
     const knoepfe = el("td");
     const sperren = el("button", null, b.aktiv ? "Sperren" : "Freigeben");

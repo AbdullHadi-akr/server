@@ -219,13 +219,13 @@ def aendern(benutzer_id, rolle=None, aktiv=None):
             # sonst kommt niemand mehr an die Einstellungen.
             if zeile["rolle"] == ADMIN and rolle != ADMIN and \
                     _andere_admins(db, benutzer_id) == 0:
-                raise ValueError("Das ist der letzte Admin - Rolle bleibt bestehen.")
+                raise ValueError("Das ist der letzte Admin, die Rolle bleibt bestehen.")
             db.execute("UPDATE benutzer SET rolle = ? WHERE id = ?",
                        (rolle, benutzer_id))
         if aktiv is not None:
             if not aktiv and zeile["rolle"] == ADMIN and \
                     _andere_admins(db, benutzer_id) == 0:
-                raise ValueError("Das ist der letzte Admin - er bleibt aktiv.")
+                raise ValueError("Das ist der letzte Admin, er bleibt aktiv.")
             db.execute("UPDATE benutzer SET aktiv = ? WHERE id = ?",
                        (1 if aktiv else 0, benutzer_id))
         db.commit()
@@ -285,7 +285,7 @@ def loeschen(benutzer_id):
         if zeile is None:
             raise ValueError("Unbekannter Benutzer.")
         if zeile["rolle"] == ADMIN and _andere_admins(db, benutzer_id) == 0:
-            raise ValueError("Das ist der letzte Admin - er kann nicht "
+            raise ValueError("Das ist der letzte Admin, er kann nicht "
                              "geloescht werden.")
         db.execute("DELETE FROM benutzer WHERE id = ?", (benutzer_id,))
         db.commit()

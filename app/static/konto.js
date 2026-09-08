@@ -18,7 +18,7 @@ async function kontoLaden() {
   karte.appendChild(kopf);
   karte.appendChild(liste([
     ["Angelegt", b.erstellt],
-    ["Letzte Anmeldung", b.letzterLogin || "–"],
+    ["Letzte Anmeldung", b.letzterLogin || "noch nie"],
     ["Schlüssel hinterlegt", b.hatToken ? "ja" : "nein"],
   ]));
   ziel.appendChild(karte);
@@ -68,7 +68,7 @@ document.getElementById("passwort-formular").addEventListener("submit", async (e
     anzeige.textContent = daten.fehler;
     return;
   }
-  anzeige.textContent = "Geändert – bitte neu anmelden.";
+  anzeige.textContent = "Geändert, bitte neu anmelden.";
   document.getElementById("f-alt").value = "";
   document.getElementById("f-neu").value = "";
   // Der Wechsel beendet die Sitzung; die Anmeldeseite fängt das ab.

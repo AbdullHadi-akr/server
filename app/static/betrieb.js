@@ -29,8 +29,8 @@ function statusKarte(daten) {
   const felder = [
     ["Image", daten.image],
     ["Container-ID", daten.id],
-    ["Laufzeit", daten.laufzeit || "–"],
-    ["Neustart-Regel", daten.neustartRegel || "–"],
+    ["Laufzeit", daten.laufzeit || "unbekannt"],
+    ["Neustart-Regel", daten.neustartRegel || "keine"],
     ["Neustarts", String(daten.neustartZaehler)],
     ["GPU", daten.gpu],
   ];
@@ -53,7 +53,7 @@ function statusKarte(daten) {
   const tabelle = el("dl", "eng");
   Object.entries(daten.einstellungen).forEach(([name, wert]) => {
     tabelle.appendChild(el("dt", null, name));
-    tabelle.appendChild(el("dd", null, wert || "(nicht gesetzt – Ollama-Standard)"));
+    tabelle.appendChild(el("dd", null, wert || "(nicht gesetzt, Ollama-Standard)"));
   });
   eingestellt.appendChild(tabelle);
   karte.appendChild(eingestellt);
@@ -62,7 +62,7 @@ function statusKarte(daten) {
     karte.appendChild(el("p", "tipp",
       "→ Dieser Container gehört zu einem Docker-Compose-Projekt. Übernommene " +
       "Werte gelten sofort, werden aber beim nächsten 'docker compose up' " +
-      "wieder aus der compose-Datei überschrieben – dort ebenfalls eintragen."));
+      "wieder aus der compose-Datei überschrieben. Dort ebenfalls eintragen."));
   }
   document.getElementById("fuss-container").textContent = daten.name;
 
@@ -99,7 +99,7 @@ async function geladeneLaden() {
     dl.appendChild(el("dt", null, m.name));
     dl.appendChild(el("dd", null,
       m.vramGib + " GiB im GPU-Speicher" +
-      (m.nurGpu ? " (vollständig auf der GPU)" : " von " + m.gesamtGib + " GiB – teilweise im RAM!") +
+      (m.nurGpu ? " (vollständig auf der GPU)" : " von " + m.gesamtGib + " GiB, teilweise im RAM!") +
       (m.kontextJeSlot ? " · Kontext je Slot " + zahl(m.kontextJeSlot) : "")));
   });
   ziel.appendChild(dl);
@@ -161,7 +161,7 @@ async function berechnen() {
     ziel.appendChild(el("p", "tipp",
       "→ Zu groß. Möglich wären bei diesem Kontext " + daten.maxParallel +
       " Nutzer, oder bei dieser Nutzerzahl " + zahl(daten.maxKontext) +
-      " Token Kontext. Alternativ den KV-Cache auf q8_0 stellen – das halbiert ihn."));
+      " Token Kontext. Alternativ den KV-Cache auf q8_0 stellen, das halbiert ihn."));
   }
 
   daten.proModell.forEach((m) => {
@@ -277,8 +277,8 @@ async function modelleLaden() {
     }
     zeile.appendChild(namensfeld);
     zeile.appendChild(el("td", null, m.groesseGib + " GiB"));
-    zeile.appendChild(el("td", null, m.quantisierung || "–"));
-    zeile.appendChild(el("td", null, m.geaendert || "–"));
+    zeile.appendChild(el("td", null, m.quantisierung || "unbekannt"));
+    zeile.appendChild(el("td", null, m.geaendert || "unbekannt"));
 
     const knoepfe = el("td");
     const aktualisieren = el("button", null, "Aktualisieren");

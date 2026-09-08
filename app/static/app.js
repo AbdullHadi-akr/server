@@ -37,7 +37,7 @@ async function seiteAufbauen() {
   document.getElementById("kopf-url").textContent = daten.publicUrl;
   document.getElementById("fuss-url").textContent = daten.publicUrl;
   document.getElementById("curl-test").textContent = "curl " + daten.publicUrl + "/api/version";
-  // Vier Leerzeichen Einrückung – so, wie die Vorlage vorgegeben ist.
+  // Vier Leerzeichen Einrückung, so wie die Vorlage sie vorgibt.
   document.getElementById("konfig").textContent = JSON.stringify(konfig, null, 4);
   // Läuft der Verkehr neuerdings über den Portal-Proxy, muss jeder, der die
   // Datei schon angelegt hat, die url einmalig ändern.
@@ -46,7 +46,7 @@ async function seiteAufbauen() {
     document.getElementById("umstellung-text").textContent =
       "Bisher stand hier " + daten.altUrl + ", jetzt " + daten.publicUrl + ". " +
       "Wer die Datei bereits angelegt hat, ändert die url bei beiden Modellen " +
-      "einmalig – am einfachsten, indem er den Block oben neu einfügt. " +
+      "einmalig, am einfachsten, indem er den Block oben neu einfügt. " +
       "Die alte Adresse funktioniert weiter; der Weg über das Portal macht " +
       "aber sichtbar, wie viele Slots je Modell gerade belegt sind.";
   }
@@ -60,7 +60,7 @@ async function seiteAufbauen() {
         "werden Anfragen abgewiesen."
       : "Wo VS Code nach einem API-Key fragt, am besten schon jetzt den " +
         "persönlichen Zugangsschlüssel aus dem Portal eintragen (Seite " +
-        "„Konto“). Noch geht es auch ohne – später wird er verlangt.";
+        "„Konto“). Noch geht es auch ohne, später wird er verlangt.";
   }
 
   document.getElementById("modellnamen").textContent =
@@ -130,7 +130,7 @@ async function diagnose() {
     });
     status.textContent = ergebnis.ok
       ? "Alles in Ordnung (" + ergebnis.zeitpunkt + ")"
-      : "Es gibt Probleme – Details oben";
+      : "Es gibt Probleme, Details oben";
   } catch (fehler) {
     ziel.textContent = "";
     ziel.appendChild(zeile({ ok: false, titel: "Portal konnte die Prüfung nicht ausführen", detail: String(fehler) }));
@@ -152,7 +152,7 @@ async function modelltest() {
     const platzhalter = zeile({
       laeuft: true,
       titel: modell.id,
-      detail: "Testanfrage läuft – beim ersten Aufruf lädt Ollama das Modell.",
+      detail: "Testanfrage läuft. Beim ersten Aufruf lädt Ollama das Modell.",
     });
     ziel.appendChild(platzhalter);
     try {
@@ -162,13 +162,13 @@ async function modelltest() {
       if (ergebnis.ok) {
         teile.push('Antwort: "' + ergebnis.antwort + '"');
         if (ergebnis.hinweis) { teile.push(ergebnis.hinweis); warnung = true; }
-        if (ergebnis.kalt) teile.push("(Kaltstart – Folgeanfragen sind deutlich schneller)");
+        if (ergebnis.kalt) teile.push("(Kaltstart, Folgeanfragen sind deutlich schneller)");
         if (ergebnis.tools) {
           if (ergebnis.tools.ok) {
             teile.push("Tool Calling: " + ergebnis.tools.info);
           } else {
             // Fehlendes Tool Calling ist kein Ausfall des Endpunkts,
-            // sondern nur eine Einschränkung – daher nur eine Warnung.
+            // sondern nur eine Einschränkung, daher nur eine Warnung.
             teile.push("Tool Calling: " + ergebnis.tools.fehler);
             warnung = true;
           }
@@ -179,7 +179,7 @@ async function modelltest() {
       platzhalter.replaceWith(zeile({
         ok: ergebnis.ok,
         warnung: ergebnis.ok && warnung,
-        titel: modell.name + " – " + modell.id,
+        titel: modell.name + " · " + modell.id,
         detail: teile.join(" · "),
         tipp: "Auf dem Server prüfen mit: ollama run " + modell.id,
         ms: ergebnis.ms,

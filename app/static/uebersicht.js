@@ -51,7 +51,7 @@ async function dienst() {
 
   const felder = [
     ["Image", daten.image],
-    ["Laufzeit", daten.laufzeit || "–"],
+    ["Laufzeit", daten.laufzeit || "unbekannt"],
     ["GPU", daten.gpu],
     ["Slots je Modell", daten.einstellungen.OLLAMA_NUM_PARALLEL || "(Ollama-Standard)"],
     ["Kontext je Slot", daten.einstellungen.OLLAMA_CONTEXT_LENGTH
@@ -89,9 +89,9 @@ async function grafikkarte() {
     karte.appendChild(liste([
       ["VRAM", g.vramBelegtGib + " von " + g.vramGesamtGib + " GiB belegt"],
       ["Frei", g.vramFreiGib + " GiB"],
-      ["Auslastung", g.auslastung === null ? "–" : g.auslastung + " %"],
-      ["Temperatur", g.temperatur === null ? "–" : g.temperatur + " °C"],
-      ["Leistung", g.leistungWatt === null ? "–" : g.leistungWatt + " W"],
+      ["Auslastung", g.auslastung === null ? "nicht gemeldet" : g.auslastung + " %"],
+      ["Temperatur", g.temperatur === null ? "nicht gemeldet" : g.temperatur + " °C"],
+      ["Leistung", g.leistungWatt === null ? "nicht gemeldet" : g.leistungWatt + " W"],
     ]));
     const anteil = g.vramGesamtGib ? (g.vramBelegtGib / g.vramGesamtGib) * 100 : 0;
     karte.appendChild(balken(anteil, anteil > 95));
@@ -187,7 +187,7 @@ async function speicher(status) {
 
   if (geladen.ok && !geladen.modelle.length) {
     ziel.appendChild(el("p", "hinweis",
-      "Zurzeit ist kein Modell geladen – der Speicher ist frei. Beim nächsten " +
+      "Zurzeit ist kein Modell geladen, der Speicher ist frei. Beim nächsten " +
       "Chat lädt Ollama das Modell nach, die erste Antwort dauert dann länger."));
   }
   return { geladen, schaetzung, parallel, kontext };
@@ -229,7 +229,7 @@ function modelle(daten, auslastung) {
       ["Belegter VRAM", m.vramGib + " GiB"],
       ["Slots", parallel + " × " + zahl(kontextJeSlot) + " Token"],
       ["Gesamtkontext", zahl(parallel * kontextJeSlot) + " Token"],
-      ["Bereitgehalten bis", m.laeuftBis ? new Date(m.laeuftBis).toLocaleString("de-DE") : "–"],
+      ["Bereitgehalten bis", m.laeuftBis ? new Date(m.laeuftBis).toLocaleString("de-DE") : "unbekannt"],
     ]));
 
     // Im Proxy-Modus ist die Belegung je Modell bekannt, sonst nur insgesamt.
@@ -246,7 +246,7 @@ function modelle(daten, auslastung) {
       karte.appendChild(el("p", "hinweis",
         "Dieses Modell stellt " + parallel + " der insgesamt " + live.slots +
         " Slots. Ohne Proxy-Modus lässt sich die Belegung nicht je Modell " +
-        "trennen – siehe Slot-Auslastung unten."));
+        "trennen, siehe Slot-Auslastung unten."));
     }
     ziel.appendChild(karte);
   });
@@ -297,12 +297,12 @@ function liveKarte(live, slots) {
     live.aktiv + " von " + live.slots));
   kopf.appendChild(el("div", "detail",
     live.ueberbucht
-      ? "mehr offene Sitzungen als Slots – Anfragen warten in der Warteschlange"
+      ? "mehr offene Sitzungen als Slots, Anfragen warten in der Warteschlange"
       : "aktive Sitzungen · " + live.frei + " Slots frei"));
   karte.appendChild(kopf);
   karte.appendChild(slotReihe(live.aktiv, live.slots));
 
-  // OLLAMA_NUM_PARALLEL gilt je Modell – die Gesamtzahl der Slots ergibt
+  // OLLAMA_NUM_PARALLEL gilt je Modell; die Gesamtzahl der Slots ergibt
   // sich erst mit der Anzahl geladener Modelle.
   if (live.slotsJeModell) {
     karte.appendChild(el("p", "hinweis",
@@ -310,7 +310,7 @@ function liveKarte(live, slots) {
       (live.modelleGeladen || 0) + " geladene Modelle = " + live.slots +
       " Slots insgesamt" +
       (live.modelleGeladen ? "" :
-        " (kein Modell geladen – gerechnet wird mit einem)")));
+        " (kein Modell geladen, gerechnet wird mit einem)")));
   }
   if (live.jeBenutzer && live.jeBenutzer.length) {
     const zeile = el("p", "hinweis", "Gerade aktiv: " + live.jeBenutzer
@@ -324,7 +324,7 @@ function liveKarte(live, slots) {
       live.port + "). VS Code hält je laufendem Chat eine Verbindung; nach der " +
       "Antwort kann sie noch kurz bestehen bleiben. Die " + live.eigene +
       " Abfrage(n) dieser Seite sind herausgerechnet. Die Verbindung verrät " +
-      "nicht, welches Modell sie nutzt – die Zahl gilt daher für alle " +
+      "nicht, welches Modell sie nutzt. Die Zahl gilt daher für alle " +
       "geladenen Modelle zusammen."));
   ziel.appendChild(karte);
 }
@@ -368,8 +368,8 @@ async function auslastung() {
   hinweisfeld.textContent =
     "Rückblick aus " + zahl(daten.erkannt) + " Zugriffen im Log des Containers, " +
     "letzter Eintrag " + daten.letzteAnfrage + ". Eine Anfrage erscheint erst im " +
-    "Log, wenn sie beantwortet ist – laufende Sitzungen stehen deshalb nur in " +
-    "der Live-Anzeige oben. Der Rückblick gilt – wie die Live-Anzeige – für " +
+    "Log, wenn sie beantwortet ist. Laufende Sitzungen stehen deshalb nur in " +
+    "der Live-Anzeige oben. Der Rückblick gilt wie die Live-Anzeige für " +
     "alle geladenen Modelle zusammen, da das Zugriffslog das Modell nicht " +
     "mitschreibt; verglichen wird daher mit allen " + daten.slots + " Slots.";
   return daten;

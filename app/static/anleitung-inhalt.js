@@ -51,11 +51,11 @@ const KAPITEL = [
         ["Eigenen Endpunkt anlegen",
          "„Add Models“ → „Custom Endpoint“. Wo VS Code nach einem API-Key " +
          "fragt, gehört der persönliche Zugangsschlüssel aus der Seite Konto " +
-         "hinein – daran erkennt das Portal, wer anfragt."],
+         "hinein. Daran erkennt das Portal, wer anfragt."],
         ["Konfiguration einfügen",
          "Weiter, bis sich chatLanguageModels.json öffnet. Das erzeugte " +
          "Template löschen und den Block von der Seite Einrichtung einfügen. " +
-         "Dort steht er immer passend zur laufenden Konfiguration – deshalb " +
+         "Dort steht er immer passend zur laufenden Konfiguration, deshalb " +
          "wird er hier nicht wiederholt."],
         ["Modell im Chat wählen",
          "Im Chat-Fenster oben rechts die Modellauswahl öffnen und qwen3 (A100) " +
@@ -74,32 +74,32 @@ const KAPITEL = [
   {
     id: "uebersicht",
     titel: "Übersicht",
-    kurz: "GPU, geladene Modelle und belegte Slots – der Zustand von jetzt.",
+    kurz: "GPU, geladene Modelle und belegte Slots: der Zustand von jetzt.",
     bloecke: [
       { typ: "text", inhalt:
         "Die Seite zeigt den Zustand des Dienstes und aktualisiert sich " +
         "selbständig. Sie ist die erste Anlaufstelle bei „warum ist es gerade " +
         "langsam?“." },
       { typ: "liste", titel: "Was dort steht", inhalt: [
-        "Dienst – läuft der Container, seit wann, welche GPU ist zugewiesen.",
-        "GPU – tatsächlich gemessene Werte über nvidia-smi: belegter und freier " +
+        "Dienst: läuft der Container, seit wann, welche GPU ist zugewiesen.",
+        "GPU: tatsächlich gemessene Werte über nvidia-smi: belegter und freier " +
         "Speicher, Auslastung, Temperatur. Ist die Messung nicht möglich, sagt " +
         "die Seite das und rechnet mit dem konfigurierten Wert weiter.",
-        "Modelle und Slots – welches Modell im Speicher liegt, wie viel VRAM es " +
+        "Modelle und Slots: welches Modell im Speicher liegt, wie viel VRAM es " +
         "belegt und wie viele Slots es bereitstellt.",
-        "Slot-Auslastung – wie viele Anfragen gerade laufen, und der Rückblick " +
+        "Slot-Auslastung: wie viele Anfragen gerade laufen, und der Rückblick " +
         "auf die letzten 15 und 60 Minuten.",
-        "Hinweise – erscheinen nur, wenn etwas nicht zusammenpasst.",
+        "Hinweise: erscheinen nur, wenn etwas nicht zusammenpasst.",
       ] },
       { typ: "text", inhalt:
         "Liegt ein Modell nur teilweise auf der GPU, wird das eigens markiert. " +
         "Der Rest liegt dann im Arbeitsspeicher, und die Antworten werden um " +
-        "ein Vielfaches langsamer – das ist der häufigste Grund für plötzliche " +
+        "ein Vielfaches langsamer. Das ist der häufigste Grund für plötzliche " +
         "Trägheit." },
       { typ: "hinweis", stufe: "warnung", inhalt:
         "Live-Zahl und Rückblick messen Verschiedenes. Live zählt die gerade " +
         "laufenden Anfragen. Der Rückblick stammt aus dem Zugriffslog und kennt " +
-        "nur abgeschlossene Anfragen – laufende tauchen dort erst auf, wenn sie " +
+        "nur abgeschlossene Anfragen. Laufende tauchen dort erst auf, wenn sie " +
         "fertig sind." },
     ],
   },
@@ -116,13 +116,13 @@ const KAPITEL = [
       { typ: "tabelle", kopf: ["Kurve", "beantwortet"], zeilen: [
         ["Belegte Slots", "Wie oft war alles ausgelastet? Die gestrichelte Linie ist die Kapazität."],
         ["GPU-Speicher", "Wie nah kommen wir an die Grenze der Karte?"],
-        ["Anfragen", "Wann ist Betrieb – und wann liegt die GPU brach?"],
+        ["Anfragen", "Wann ist Betrieb, und wann liegt die GPU brach?"],
         ["Antwortzeit", "Werden die Antworten unter Last spürbar langsamer?"],
       ] },
       { typ: "text", inhalt:
         "Zeiträume über einer Stunde werden zusammengefasst, damit die " +
         "Diagramme lesbar bleiben: 7 Tage als Stundenmittel, 30 Tage in " +
-        "6-Stunden-Schritten. Die Spitzenwerte bleiben dabei erhalten – eine " +
+        "6-Stunden-Schritten. Die Spitzenwerte bleiben dabei erhalten, eine " +
         "kurze Volllast verschwindet also nicht im Mittelwert." },
       { typ: "hinweis", stufe: "hinweis", inhalt:
         "Über „Tabelle anzeigen“ lassen sich dieselben Werte als Zahlen lesen. " +
@@ -132,7 +132,7 @@ const KAPITEL = [
   {
     id: "reservierungen",
     titel: "Reservierungen",
-    kurz: "Slots für ein Zeitfenster sichern – und was das für andere bedeutet.",
+    kurz: "Slots für ein Zeitfenster sichern, und was das für andere bedeutet.",
     bloecke: [
       { typ: "text", inhalt:
         "Wer weiß, dass er nachmittags eine größere Aufgabe rechnen lässt, " +
@@ -141,7 +141,7 @@ const KAPITEL = [
       { typ: "liste", titel: "Regeln beim Anlegen", inhalt: [
         "Beginn und Ende liegen auf einer Viertelstunde (:00, :15, :30, :45).",
         "Höchstens 4 Stunden am Stück.",
-        "Ein Ende vor dem Beginn meint den Folgetag – 23:00 bis 01:00 ist also möglich.",
+        "Ein Ende vor dem Beginn meint den Folgetag, 23:00 bis 01:00 ist also möglich.",
         "Normale Nutzer müssen einen Slot für alle anderen frei lassen; " +
         "Administratoren dürfen ein Modell ganz belegen.",
         "Überlappende Reservierungen dürfen zusammen die Slot-Zahl nicht überschreiten.",
@@ -161,7 +161,7 @@ const KAPITEL = [
         "solange ihn niemand sonst braucht. Beispiel mit 4 Slots, 3 davon für " +
         "Meier reserviert: Meier darf 4 gleichzeitig, solange sonst niemand " +
         "rechnet. Sobald jemand anderes den freien Slot nutzt, bleiben Meier " +
-        "genau seine 3 – und der andere bekommt keinen zweiten." },
+        "genau seine 3, und der andere bekommt keinen zweiten." },
       { typ: "hinweis", stufe: "warnung", inhalt:
         "Wird das Erlaubte überschritten, weist das Portal die Anfrage ab. In " +
         "VS Code erscheint dann eine Meldung, die nennt, wer bis wann " +
@@ -195,14 +195,14 @@ const KAPITEL = [
         "der alte Container automatisch wiederhergestellt." },
       { typ: "text", inhalt:
         "Gehört der Container zu einem Compose-Projekt, gelten übernommene " +
-        "Werte sofort – werden aber vom nächsten „docker compose up“ wieder " +
+        "Werte sofort, werden aber vom nächsten „docker compose up“ wieder " +
         "aus der compose-Datei überschrieben. Die Seite weist darauf hin und " +
         "nennt die einzutragenden Werte." },
       { typ: "liste", titel: "Modellverwaltung", inhalt: [
         "Liste der installierten Modelle mit Größe, Quantisierung und Stand.",
         "Nachladen und Aktualisieren mit Fortschrittsanzeige; es läuft immer " +
         "nur ein Ladevorgang.",
-        "Löschen – Modelle, die in der Nutzerkonfiguration stehen, sind " +
+        "Löschen: Modelle, die in der Nutzerkonfiguration stehen, sind " +
         "markiert und verlangen eine ausdrückliche Bestätigung.",
       ] },
     ],
@@ -219,7 +219,7 @@ const KAPITEL = [
       ] },
       { typ: "text", inhalt:
         "Beim Anlegen erzeugt das Portal einen Zugangsschlüssel und zeigt ihn " +
-        "genau einmal an – gespeichert wird nur sein Abdruck. Der Schlüssel " +
+        "genau einmal an. Gespeichert wird nur sein Abdruck. Der Schlüssel " +
         "gehört an die betreffende Person weitergegeben; geht er verloren, " +
         "erzeugt man einen neuen." },
       { typ: "liste", titel: "Eingebaute Sicherungen", inhalt: [
@@ -240,13 +240,13 @@ const KAPITEL = [
       { typ: "text", inhalt:
         "Der Zugangsschlüssel weist dich gegenüber dem Portal aus. Er gehört " +
         "in VS Code dorthin, wo nach einem API-Key gefragt wird. Damit werden " +
-        "deine Anfragen dir zugeordnet – und nur so greifen deine " +
+        "deine Anfragen dir zugeordnet, und nur so greifen deine " +
         "Reservierungen." },
       { typ: "hinweis", stufe: "warnung", inhalt:
         "Gespeichert wird nur der Abdruck des Schlüssels, nicht der Schlüssel " +
         "selbst. Er ist deshalb ausschließlich unmittelbar nach dem Erzeugen " +
         "im Klartext zu sehen. Verloren? Einen neuen erzeugen und in VS Code " +
-        "eintragen – der alte wird damit sofort ungültig." },
+        "eintragen. Der alte wird damit sofort ungültig." },
       { typ: "text", inhalt:
         "Ein Passwortwechsel beendet alle offenen Sitzungen, auch die eigene. " +
         "Danach ist eine neue Anmeldung nötig." },
@@ -255,17 +255,17 @@ const KAPITEL = [
   {
     id: "begriffe",
     titel: "Begriffe und Rechenwege",
-    kurz: "Slot, Kontext, KV-Cache – und woher die VRAM-Zahlen kommen.",
+    kurz: "Slot, Kontext, KV-Cache, und woher die VRAM-Zahlen kommen.",
     bloecke: [
       { typ: "liste", titel: "Begriffe", inhalt: [
-        "Slot – ein Platz für eine gleichzeitige Anfrage. Ollama hält je " +
+        "Slot: ein Platz für eine gleichzeitige Anfrage. Ollama hält je " +
         "geladenem Modell so viele Slots bereit, wie die Nutzeranzahl angibt.",
-        "Kontext – wie viele Token eine Unterhaltung umfassen darf. Gilt je " +
+        "Kontext: wie viele Token eine Unterhaltung umfassen darf. Gilt je " +
         "Slot; jeder Slot hat seinen eigenen Speicher dafür.",
-        "KV-Cache – der Zwischenspeicher, in dem das Modell die bisherige " +
+        "KV-Cache: der Zwischenspeicher, in dem das Modell die bisherige " +
         "Unterhaltung hält. Er macht den größten veränderlichen Teil des " +
         "VRAM-Bedarfs aus.",
-        "Tool Calling – die Fähigkeit, Werkzeuge aufzurufen, statt nur Text zu " +
+        "Tool Calling: die Fähigkeit, Werkzeuge aufzurufen, statt nur Text zu " +
         "schreiben. Nötig für den Agentenbetrieb in VS Code.",
       ] },
       { typ: "code", titel: "VRAM-Bedarf", inhalt:
@@ -275,7 +275,7 @@ const KAPITEL = [
         "Die 96 KiB folgen aus dem Aufbau von qwen3-30b-a3b: 2 (Schlüssel und " +
         "Wert) × 4 KV-Heads × 128 Head-Dim × 48 Layer × 2 Byte. Die Gewichte " +
         "belegen rund 17,3 GiB. Gegenprobe an gemessenen Werten: 4 Nutzer mit " +
-        "je 50 000 Token ergeben 17,3 + 18,3 + 1,4 = 37,0 GiB – gemessen " +
+        "je 50 000 Token ergeben 17,3 + 18,3 + 1,4 = 37,0 GiB, gemessen " +
         "wurden 37 GiB." },
       { typ: "tabelle", kopf: ["KV-Cache-Typ", "Speicher", "Qualität"], zeilen: [
         ["f16", "voll", "Standard, höchste Qualität"],
@@ -286,11 +286,11 @@ const KAPITEL = [
         "Slots insgesamt: Die Nutzeranzahl gilt je Modell. Sind zwei Modelle " +
         "geladen und stehen 4 parallele Anfragen ein, gibt es 8 Slots." },
       { typ: "liste", titel: "Wie Auslastung gemessen wird", inhalt: [
-        "Live – das Portal kennt jede laufende Anfrage, weil sie durch es " +
+        "Live: das Portal kennt jede laufende Anfrage, weil sie durch es " +
         "hindurchgeht, samt Modell und Nutzer.",
-        "Rückblick – aus dem Zugriffslog von Ollama: Endzeitpunkt und Dauer " +
+        "Rückblick: aus dem Zugriffslog von Ollama: Endzeitpunkt und Dauer " +
         "jeder abgeschlossenen Anfrage ergeben, wie viele gleichzeitig liefen.",
-        "VRAM – gemessen über nvidia-smi, daneben der rechnerisch erwartete " +
+        "VRAM: gemessen über nvidia-smi, daneben der rechnerisch erwartete " +
         "Wert aus der Formel oben.",
       ] },
     ],
@@ -312,7 +312,7 @@ const KAPITEL = [
         ["Alles ist spürbar langsam",
          "Übersicht ansehen: Liegt ein Modell nur teilweise auf der GPU, oder sind alle Slots belegt?"],
         ["Endpunkt nicht erreichbar",
-         "Die Funktionsprüfung auf der Seite Einrichtung nennt die Ursache – Namensauflösung, Port oder Dienst."],
+         "Die Funktionsprüfung auf der Seite Einrichtung nennt die Ursache: Namensauflösung, Port oder Dienst."],
       ] },
       { typ: "hinweis", stufe: "hinweis", inhalt:
         "Die Funktionsprüfung auf der Startseite geht die Kette Schritt für " +

@@ -91,7 +91,7 @@ function zeitleiste(modell, eintraege, behaelter) {
     const beschriftung = svgEl("text", { class: "blocktext", x: links + 6,
                                          y: y + zeilenHoehe - 12 });
     beschriftung.textContent = r.benutzer + " · " + r.slots + " Slots · " +
-      uhr(r.start) + "–" + uhr(r.ende) + (r.notiz ? " · " + r.notiz : "");
+      uhr(r.start) + " bis " + uhr(r.ende) + (r.notiz ? " · " + r.notiz : "");
     svg.appendChild(beschriftung);
   });
 

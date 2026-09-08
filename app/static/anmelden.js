@@ -35,12 +35,12 @@ async function aufbauen() {
       "wird nur ein Hash, nie das Passwort selbst.";
     if (!zustand.speicherbar) {
       text += " Achtung: " + zustand.datenVerzeichnis + " ist nicht " +
-        "beschreibbar – ohne eingebundenes Volume lässt sich kein Konto " +
+        "beschreibbar. Ohne eingebundenes Volume lässt sich kein Konto " +
         "speichern.";
     }
   } else {
     text = "Einrichtung, Übersicht und Verlauf sind ohne Anmeldung zugänglich. " +
-      "Für Reservierungen und Einstellungen bitte anmelden – Konten legt ein " +
+      "Für Reservierungen und Einstellungen bitte anmelden. Konten legt ein " +
       "Administrator an.";
   }
   document.getElementById("anmeldung-text").textContent = text;

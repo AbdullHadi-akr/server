@@ -45,8 +45,8 @@ def _kontext_pruefen(kontext):
                 f"{modell['id']}: maxInputTokens groesser als der Kontext",
                 f"In der chatLanguageModels.json stehen {_tsd(eingabe)} Token "
                 f"Eingabe, ein Slot fasst aber nur {_tsd(kontext)} Token. "
-                "VS Code darf damit mehr senden, als Ollama verarbeiten kann - "
-                "der Anfang der Unterhaltung wird stillschweigend "
+                "VS Code darf damit mehr senden, als Ollama verarbeiten kann. "
+                "Der Anfang der Unterhaltung wird stillschweigend "
                 "abgeschnitten.",
                 f"maxInputTokens auf hoechstens {_tsd(max(0, kontext - ausgabe))} "
                 "senken oder OLLAMA_CONTEXT_LENGTH erhoehen."))
@@ -78,7 +78,7 @@ def _speicher_pruefen(parallel, kontext, kv_typ, geladen, gpu_daten):
                 f"verfuegbar sind {vram_gib} GiB.",
                 f"Hoechstens {rechnung['maxParallel']} Nutzer oder "
                 f"{_tsd(rechnung['maxKontext'])} Token Kontext, oder den "
-                "KV-Cache auf q8_0 stellen - das halbiert ihn."))
+                "KV-Cache auf q8_0 stellen, das halbiert ihn."))
 
     for modell in geladen.get("modelle", []):
         if not modell.get("nurGpu"):
@@ -104,7 +104,7 @@ def _umgebung_pruefen(umgebung):
             "Quantisierter KV-Cache ohne Flash Attention",
             f"OLLAMA_KV_CACHE_TYPE steht auf {kv_typ}, "
             "OLLAMA_FLASH_ATTENTION ist aber nicht gesetzt. Aeltere "
-            "Ollama-Staende ignorieren die Quantisierung dann - der Cache "
+            "Ollama-Staende ignorieren die Quantisierung dann, der Cache "
             "belegt weiter den vollen Speicher.",
             "OLLAMA_FLASH_ATTENTION=1 im Ollama-Container setzen."))
 
@@ -131,7 +131,7 @@ def _proxy_pruefen():
                 "Angezeigte Adresse zeigt auf einen abgeschalteten Proxy",
                 f"Die Nutzer sollen {config.PUBLIC_OLLAMA_URL} eintragen, der "
                 f"Proxy ist mit PROXY_AKTIV=false aber ausgeschaltet. Auf Port "
-                f"{config.PROXY_PORT} lauscht dann nichts - fuer alle bereits "
+                f"{config.PROXY_PORT} lauscht dann nichts, fuer alle bereits "
                 "umgestellten Nutzer funktioniert der Chat nicht mehr.",
                 "Entweder PROXY_AKTIV=true setzen oder PUBLIC_OLLAMA_URL "
                 "zurueck auf den direkten Ollama-Port stellen.")]
@@ -145,7 +145,7 @@ def _proxy_pruefen():
         f"Der Portal-Proxy lauscht auf Port {config.PROXY_PORT}, die Nutzer "
         f"tragen aber {config.PUBLIC_OLLAMA_URL} ein und sprechen Ollama damit "
         "direkt an. Die Slot-Zahlen je Modell bleiben deshalb leer.",
-        f"PUBLIC_OLLAMA_URL auf Port {config.PROXY_PORT} umstellen - dann "
+        f"PUBLIC_OLLAMA_URL auf Port {config.PROXY_PORT} umstellen. Dann "
         "muessen alle Nutzer die url in ihrer chatLanguageModels.json einmalig "
         "aendern. Wird der Proxy nicht gebraucht: PROXY_AKTIV=false.")]
 
@@ -164,8 +164,8 @@ def _adresse_pruefen():
             "Angezeigte Adresse ist vom Portal aus nicht aufloesbar",
             f"Die Nutzer sollen {config.PUBLIC_OLLAMA_URL} eintragen, dieser "
             "Name laesst sich vom Portal aus aber nicht aufloesen. Das kann "
-            "richtig sein, wenn die Arbeitsplaetze einen anderen DNS nutzen - "
-            "sonst traegt niemand eine funktionierende Adresse ein.",
+            "richtig sein, wenn die Arbeitsplaetze einen anderen DNS nutzen. "
+            "Sonst traegt niemand eine funktionierende Adresse ein.",
             "PUBLIC_OLLAMA_URL pruefen.")]
     return []
 

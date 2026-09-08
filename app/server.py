@@ -811,7 +811,7 @@ def _konten_vorbereiten():
     if anzahl:
         print(f"{anzahl} Benutzerkonten", flush=True)
     else:
-        print("Noch kein Konto - der erste Aufruf von /betrieb legt den "
+        print("Noch kein Konto. Der erste Aufruf von /betrieb legt den "
               "Administrator an", flush=True)
 
 

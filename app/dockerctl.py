@@ -339,7 +339,7 @@ def einstellungen_uebernehmen(aenderungen):
                 _api("POST", f"/containers/{alte_id}/start", timeout=90)
                 rueckbau.append("alten Container wieder gestartet")
         except DockerFehler as rueckbau_fehler:
-            rueckbau.append(f"ACHTUNG - Wiederherstellung fehlgeschlagen: {rueckbau_fehler}")
+            rueckbau.append(f"ACHTUNG, Wiederherstellung fehlgeschlagen: {rueckbau_fehler}")
         raise DockerFehler(
             f"Uebernahme fehlgeschlagen: {fehler} | Wiederherstellung: "
             + ", ".join(rueckbau))
