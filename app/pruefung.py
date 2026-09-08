@@ -119,10 +119,25 @@ def _umgebung_pruefen(umgebung):
 
 
 def _proxy_pruefen():
-    """Weist darauf hin, wenn der Proxy laeuft, aber niemand ihn nutzt."""
+    """Prueft, ob angezeigte Adresse und Proxy-Zustand zusammenpassen."""
+    zeigt_auf_proxy = f":{config.PROXY_PORT}" in config.PUBLIC_OLLAMA_URL
+
     if not config.PROXY_AKTIV:
+        if zeigt_auf_proxy:
+            # Der gefaehrlichere der beiden Faelle: Die Nutzer tragen eine
+            # Adresse ein, auf der nichts lauscht.
+            return [_eintrag(
+                WARNUNG,
+                "Angezeigte Adresse zeigt auf einen abgeschalteten Proxy",
+                f"Die Nutzer sollen {config.PUBLIC_OLLAMA_URL} eintragen, der "
+                f"Proxy ist mit PROXY_AKTIV=false aber ausgeschaltet. Auf Port "
+                f"{config.PROXY_PORT} lauscht dann nichts - fuer alle bereits "
+                "umgestellten Nutzer funktioniert der Chat nicht mehr.",
+                "Entweder PROXY_AKTIV=true setzen oder PUBLIC_OLLAMA_URL "
+                "zurueck auf den direkten Ollama-Port stellen.")]
         return []
-    if f":{config.PROXY_PORT}" in config.PUBLIC_OLLAMA_URL:
+
+    if zeigt_auf_proxy:
         return []
     return [_eintrag(
         HINWEIS,

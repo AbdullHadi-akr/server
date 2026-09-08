@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "2.0 (Proxy-Modus)"
+VERSION = "2.1 (Proxy in Betrieb)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
@@ -12,10 +12,16 @@ OLLAMA_URL = os.environ.get(
     "OLLAMA_URL", "http://AZEU-DEW-DEVGPU-02:5020").rstrip("/")
 
 # Adresse, die den Nutzern in der VS-Code-Konfiguration angezeigt wird. Sie
-# weicht bewusst von OLLAMA_URL ab: Das Portal erreicht Ollama unter dem
-# Namen des GPU-Servers, die Arbeitsplaetze tragen den anderen Namen ein.
+# zeigt auf den Proxy des Portals (Port 5022), nicht direkt auf Ollama: Nur so
+# laufen die Anfragen durch das Portal und lassen sich je Modell zaehlen.
 PUBLIC_OLLAMA_URL = os.environ.get(
-    "PUBLIC_OLLAMA_URL", "http://azeu-dew-devappl-01:5020").rstrip("/")
+    "PUBLIC_OLLAMA_URL", "http://azeu-dew-devappl-01:5022").rstrip("/")
+
+# Die zuvor angezeigte Adresse. Sie funktioniert weiter, liefert aber keine
+# Zahlen je Modell. Die Einrichtungsseite benennt damit den Wechsel, statt ihn
+# stillschweigend zu vollziehen. Leer setzen blendet den Hinweis aus.
+ALT_OLLAMA_URL = os.environ.get(
+    "ALT_OLLAMA_URL", "http://azeu-dew-devappl-01:5020").rstrip("/")
 
 # Name des Anbieter-Eintrags in der chatLanguageModels.json.
 VENDOR_NAME = os.environ.get("VENDOR_NAME", "A100")

@@ -131,6 +131,9 @@ class Handler(BaseHTTPRequestHandler):
                 "publicUrl": config.PUBLIC_OLLAMA_URL,
                 "vendor": config.VENDOR_NAME,
                 "version": config.VERSION,
+                "altUrl": config.ALT_OLLAMA_URL,
+                "proxyAktiv": config.PROXY_AKTIV,
+                "ueberProxy": f":{config.PROXY_PORT}" in config.PUBLIC_OLLAMA_URL,
                 "modelle": config.MODELS,
             })
         elif pfad == "/api/vscode-config":

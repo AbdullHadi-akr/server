@@ -40,6 +40,18 @@ async function seiteAufbauen() {
   document.getElementById("curl-test").textContent = "curl " + daten.publicUrl + "/api/version";
   // Vier Leerzeichen Einrückung – so, wie die Vorlage vorgegeben ist.
   document.getElementById("konfig").textContent = JSON.stringify(konfig, null, 4);
+  // Läuft der Verkehr neuerdings über den Portal-Proxy, muss jeder, der die
+  // Datei schon angelegt hat, die url einmalig ändern.
+  if (daten.ueberProxy && daten.altUrl && daten.altUrl !== daten.publicUrl) {
+    document.getElementById("umstellung").hidden = false;
+    document.getElementById("umstellung-text").textContent =
+      "Bisher stand hier " + daten.altUrl + ", jetzt " + daten.publicUrl + ". " +
+      "Wer die Datei bereits angelegt hat, ändert die url bei beiden Modellen " +
+      "einmalig – am einfachsten, indem er den Block oben neu einfügt. " +
+      "Die alte Adresse funktioniert weiter; der Weg über das Portal macht " +
+      "aber sichtbar, wie viele Slots je Modell gerade belegt sind.";
+  }
+
   document.getElementById("modellnamen").textContent =
     daten.modelle.map((m) => m.name).join(" oder ");
 

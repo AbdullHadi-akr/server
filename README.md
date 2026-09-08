@@ -22,7 +22,7 @@ docker compose up -d --build
 docker build -t modell-portal .
 docker run -d --name modell-portal -p 5021:5021 \
   -e OLLAMA_URL=http://AZEU-DEW-DEVGPU-02:5020 \
-  -e PUBLIC_OLLAMA_URL=http://azeu-dew-devappl-01:5020 \
+  -e PUBLIC_OLLAMA_URL=http://azeu-dew-devappl-01:5022 \
   modell-portal
 ```
 
@@ -49,7 +49,8 @@ Alles über Umgebungsvariablen:
 | Variable            | Standard                            | Bedeutung |
 |---------------------|-------------------------------------|-----------|
 | `OLLAMA_URL`        | `http://AZEU-DEW-DEVGPU-02:5020`    | Adresse, unter der **das Portal** Ollama erreicht: Prüfungen, Modelltests, Status, Auslastung. |
-| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5020`   | Adresse, die den **Nutzern** in der VS-Code-Konfiguration angezeigt wird. |
+| `PUBLIC_OLLAMA_URL` | `http://azeu-dew-devappl-01:5022`   | Adresse, die den **Nutzern** angezeigt wird – zeigt auf den Proxy des Portals. |
+| `ALT_OLLAMA_URL`    | `http://azeu-dew-devappl-01:5020`   | Vorherige Adresse, nur für den Umstellungshinweis. Leer = kein Hinweis. |
 | `VENDOR_NAME`       | `A100`                              | Name des Anbieter-Eintrags und Suffix der Modellnamen. |
 | `PORT` / `HOST`     | `5021` / `0.0.0.0`                  | Bindung des Portals. |
 | `OLLAMA_CONTAINER`  | `ollama`                            | Name des Containers, in dem Ollama läuft. |
@@ -245,16 +246,25 @@ VS Code weiter Wort für Wort erscheint. Daraus entsteht je Modell: laufende
 Anfragen, davon rechnend (bis `OLLAMA_NUM_PARALLEL`) und wartend. Die Übersicht
 zeigt das auf den Modellkarten, der Verlauf schreibt es mit.
 
-**Einschalten:** Der Proxy läuft standardmäßig mit, wird aber erst genutzt, wenn
-`PUBLIC_OLLAMA_URL` auf seinen Port zeigt. Solange das nicht der Fall ist, weist
-die Plausibilitätsprüfung darauf hin. Der Wechsel bedeutet, dass **alle Nutzer
-die `url` in ihrer `chatLanguageModels.json` einmalig ändern** müssen.
+**Der Proxy ist in Betrieb.** `PUBLIC_OLLAMA_URL` zeigt auf
+`http://azeu-dew-devappl-01:5022`, die Einrichtungsseite gibt also die
+Proxy-Adresse aus. Wer seine `chatLanguageModels.json` vor der Umstellung angelegt
+hat, muss die `url` bei beiden Modellen einmalig ändern – die Seite weist mit
+einem Hinweis darauf hin und nennt beide Adressen. Die alte Adresse (Port 5020)
+funktioniert weiter, liefert aber keine Zahlen je Modell.
 
-**Was das kostet:** Das Portal wird damit zum kritischen Pfad – ist es aus,
-funktioniert kein Chat mehr. `PROXY_AKTIV=false` ist der Notausstieg; dann tragen
-die Nutzer wieder Port 5020 ein und die Live-Messung fällt auf die
-Verbindungszählung zurück. Sinnvoll ist eine Übergangszeit, in der beide Wege
-funktionieren – der direkte Port bleibt ja erreichbar.
+**Reihenfolge beim Ausrollen:** erst `docker compose up -d --build`, damit Port
+5022 veröffentlicht ist, dann von einem Arbeitsplatz aus
+`curl http://azeu-dew-devappl-01:5022/api/version` gegenprüfen (kommt nichts,
+blockiert eine Firewall den Port), und **erst danach** die Nutzer bitten,
+umzustellen.
+
+**Was das kostet:** Das Portal ist damit im kritischen Pfad – ist es aus,
+funktioniert für umgestellte Nutzer kein Chat mehr. Rückweg: `PROXY_AKTIV=false`
+und `PUBLIC_OLLAMA_URL` zurück auf `http://azeu-dew-devappl-01:5020`. Die
+Plausibilitätsprüfung **warnt**, wenn die angezeigte Adresse auf den Proxy-Port
+zeigt, der Proxy aber abgeschaltet ist – der wahrscheinlichste Bedienfehler nach
+der Umstellung.
 
 ## Verlaufsseite (`/verlauf`)
 

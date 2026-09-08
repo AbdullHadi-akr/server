@@ -14,7 +14,11 @@ services:
       # Modelltests, Status und Auslastung laufen darueber.
       OLLAMA_URL: "http://AZEU-DEW-DEVGPU-02:5020"
       # Adresse, die den NUTZERN in der VS-Code-Konfiguration gezeigt wird.
-      PUBLIC_OLLAMA_URL: "http://azeu-dew-devappl-01:5020"
+      # Sie zeigt auf den Proxy dieses Portals (Port 5022), damit die Anfragen
+      # durch das Portal laufen und je Modell gezaehlt werden koennen.
+      PUBLIC_OLLAMA_URL: "http://azeu-dew-devappl-01:5022"
+      # Die vorherige Adresse - nur fuer den Umstellungshinweis auf der Seite.
+      ALT_OLLAMA_URL: "http://azeu-dew-devappl-01:5020"
       VENDOR_NAME: "A100"
 
       # Name des Containers, in dem Ollama laeuft (fuer die Betriebsseite).
