@@ -12,7 +12,7 @@ die er auch nutzen kann:
 
 | Zustand | Reiter |
 |---|---|
-| immer | Einrichtung · Übersicht · Verlauf |
+| immer | Einrichtung · Übersicht · Verlauf · Anleitung |
 | nicht angemeldet | + **Anmelden** |
 | angemeldet (`nutzer`) | + Reservierungen · Konto |
 | angemeldet (`admin`) | + Reservierungen · Einstellungen · Benutzer · Konto |
@@ -22,6 +22,7 @@ die er auch nutzen kann:
 | `/` | offen | Anleitung zur Einbindung in VS Code, Funktionsprüfung |
 | `/uebersicht` | offen, nur lesend | Dienst-Status, GPU, Modelle, Slot-Auslastung |
 | `/verlauf` | offen, nur lesend | Auslastung, Speicher und Anfragen über Tage und Wochen |
+| `/anleitung` | offen | Erklärung der einzelnen Bereiche samt Rechenwegen |
 | `/anmelden` | offen | Anmeldung; beim ersten Start Anlegen des Administrators |
 | `/reservierungen` | angemeldet | Belegung je Modell, Slots für ein Zeitfenster sichern |
 | `/betrieb` | **Admin** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
@@ -411,6 +412,27 @@ den GPU-Server:
   sind als solche markiert und verlangen eine ausdrückliche Bestätigung –
   sonst findet VS Code sie anschließend nicht mehr.
 
+## Anleitung im Portal (`/anleitung`)
+
+Zehn Kacheln, dahinter je eine Erklärung: wofür ein Bereich da ist, was die
+Anzeigen bedeuten und wie die Zahlen zustande kommen. Ohne Anmeldung lesbar –
+sie muss gerade dann funktionieren, wenn jemand wissen will, warum etwas nicht
+geht.
+
+- Einzelne Kapitel sind verlinkbar (`/anleitung#reservierungen`); Übersicht,
+  Reservierungen und Einstellungen verweisen an den passenden Stellen dorthin.
+- Ein Filterfeld durchsucht auch den Fließtext – „VRAM" findet die beiden
+  Kapitel, die es erklären.
+- „Alles anzeigen" klappt alle Kapitel untereinander auf, etwa zum Ausdrucken.
+- Kapitel zu Adminbereichen sind gekennzeichnet, bleiben aber für alle lesbar –
+  ein neuer Administrator muss sie ja finden.
+
+Die Inhalte stehen als Datenstruktur in `app/static/anleitung-inhalt.js`, nicht
+als HTML-Text. **Wer Grenzwerte im Code ändert, ändert sie bitte dort mit** –
+die Anleitung nennt konkrete Zahlen (96 KiB je Token, 4 Stunden Höchstdauer,
+Viertelstundenraster), und eine Anleitung, die etwas anderes behauptet als die
+Software tut, richtet mehr Schaden an als keine.
+
 ## Plausibilitätsprüfung
 
 Übersicht und Einstellungsseite zeigen Hinweise, wenn Konfiguration und
@@ -564,7 +586,8 @@ app/
   proxy.py      Weiterleitung an Ollama; zählt laufende Anfragen je Modell
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
   static/       je Seite eine .html und eine .js;
-                gemeinsam.js trägt Navigation, Zugangsschutz und Helfer
+                gemeinsam.js trägt Navigation, Zugangsschutz und Helfer;
+                anleitung-inhalt.js die Texte der Anleitung
 Dockerfile
 docker-compose.yml
 ```

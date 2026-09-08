@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anleitung</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav class="navi" id="navi"></nav>
+    <h1>Anleitung</h1>
+    <p class="lead">
+      Wofür die einzelnen Seiten da sind, was die Zahlen bedeuten und wie sie
+      zustande kommen. Bereich auswählen – oder nach einem Stichwort suchen.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="knopfleiste">
+    <input type="search" id="f-suche" placeholder="Stichwort, z. B. VRAM oder Slot"
+           autocomplete="off" spellcheck="false">
+    <button id="btn-alles">Alles anzeigen</button>
+    <span id="such-status" class="status"></span>
+  </div>
+
+  <section id="kachel-bereich" class="kacheln"></section>
+  <section id="kapitel"></section>
+</main>
+
+<footer class="wrap">
+  <p>Version <span id="fuss-version">…</span></p>
+</footer>
+
+<script src="/gemeinsam.js"></script>
+<script src="/anleitung-inhalt.js"></script>
+<script src="/anleitung.js"></script>
+</body>
+</html>

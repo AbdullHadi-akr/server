@@ -52,6 +52,7 @@ const REITER_IMMER = [
   ["/", "Einrichtung"],
   ["/uebersicht", "Übersicht"],
   ["/verlauf", "Verlauf"],
+  ["/anleitung", "Anleitung"],
 ];
 const REITER_ADMIN = [
   ["/betrieb", "Einstellungen"],

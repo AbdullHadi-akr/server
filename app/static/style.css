@@ -339,3 +339,28 @@ button.zeitraum.aktiv { background: var(--akzent); border-color: var(--akzent); 
 @media (max-width: 640px) {
   .navi-konto { margin-left: 0; border-left: 0; padding-left: 0; width: 100%; }
 }
+
+/* --- Anleitung --------------------------------------------------------- */
+.kachel.waehlbar { cursor: pointer; text-align: left; width: 100%; font: inherit; }
+.kachel.waehlbar:hover { border-color: var(--akzent); }
+.kachel.waehlbar.aktiv { border-color: var(--akzent); background: rgba(76, 141, 255, 0.10); }
+.kachel .kacheltitel { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.kachel .kachelkurz { color: var(--gedaempft); font-size: 13px; line-height: 1.45; }
+.kapitel { margin-top: 28px; }
+.kapitel h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kapitel p { max-width: 76ch; }
+.kapitel dl.eng { margin: 12px 0; }
+.kapitel .schritte { margin-top: 12px; }
+.knopfleiste input[type="search"] {
+  background: var(--flaeche); color: var(--text);
+  border: 1px solid var(--rand); border-radius: 6px;
+  padding: 9px 12px; font-size: 15px; min-width: 260px;
+}
+ul.aufzaehlung { margin: 10px 0; padding-left: 22px; max-width: 76ch; }
+ul.aufzaehlung li { margin-bottom: 6px; }
+h3.untertitel { font-size: 15px; margin: 20px 0 6px; color: var(--gedaempft); font-weight: 600; }
+a.erklaerung {
+  font-size: 13px; font-weight: 400; color: var(--akzent);
+  text-decoration: none; margin-left: 10px; white-space: nowrap;
+}
+a.erklaerung:hover { text-decoration: underline; }
