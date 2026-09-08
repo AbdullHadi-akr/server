@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anmelden</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav class="navi" id="navi"></nav>
+    <h1 id="titel">Anmelden</h1>
+    <p class="lead" id="anmeldung-text"></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <form id="anmelde-formular" class="regler" autocomplete="off">
+      <label for="f-name">Benutzername</label>
+      <input type="text" id="f-name" autocomplete="username" required autofocus>
+      <label for="f-passwort">Passwort</label>
+      <input type="password" id="f-passwort" autocomplete="current-password" required>
+      <div id="wiederholung-block" hidden>
+        <label for="f-passwort2">Passwort wiederholen</label>
+        <input type="password" id="f-passwort2" autocomplete="new-password">
+      </div>
+      <div class="knopfleiste">
+        <button type="submit" class="primaer" id="btn-anmelden">Anmelden</button>
+        <span id="anmelde-meldung" class="status"></span>
+      </div>
+    </form>
+    <div id="token-anzeige"></div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Version <span id="fuss-version">…</span></p>
+</footer>
+
+<script src="/gemeinsam.js"></script>
+<script src="/anmelden.js"></script>
+</body>
+</html>

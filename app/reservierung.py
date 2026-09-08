@@ -48,12 +48,27 @@ def _db():
     return db
 
 
-def _zeitpunkt(text):
-    """Wandelt '2026-09-08T13:00' in einen Zeitstempel der lokalen Zeitzone."""
+def _zeitpunkt(wert):
+    """Nimmt einen Zeitpunkt entgegen - bevorzugt als Unix-Zeit.
+
+    Die Oberflaeche rechnet den Zeitstempel im Browser aus und schickt eine
+    Zahl. Nur so ist der Zeitpunkt eindeutig: Eine Wanduhrzeit ohne Zone wuerde
+    der Server in seiner eigenen Zeitzone deuten - laeuft der Container auf UTC
+    und sitzt der Nutzer in Berlin, waeren das zwei Stunden Unterschied.
+
+    Text im ISO-Format bleibt als Rueckfall fuer Aufrufe von Hand moeglich; er
+    wird in der Zeitzone des Servers gedeutet.
+    """
+    if isinstance(wert, bool):
+        raise ValueError("Unlesbare Zeitangabe.")
+    if isinstance(wert, (int, float)):
+        return int(wert)
+    if isinstance(wert, str) and wert.strip().lstrip("-").isdigit():
+        return int(wert.strip())
     try:
-        return int(datetime.fromisoformat(text).timestamp())
+        return int(datetime.fromisoformat(wert).timestamp())
     except (TypeError, ValueError):
-        raise ValueError(f"Unlesbare Zeitangabe: {text}")
+        raise ValueError(f"Unlesbare Zeitangabe: {wert}")
 
 
 def _lesbar(zeitstempel):

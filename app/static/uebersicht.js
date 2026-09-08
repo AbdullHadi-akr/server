@@ -413,9 +413,8 @@ function taktSetzen() {
 document.getElementById("btn-nutzung").addEventListener("click", nurAuslastung);
 document.getElementById("f-auto").addEventListener("change", taktSetzen);
 
-holen("/healthz").then((d) => {
-  document.getElementById("fuss-version").textContent = d.version || "?";
-});
+versionAnzeigen();
+navigationLaden();
 aktualisieren();
 taktSetzen();
 setInterval(aktualisieren, 30000);

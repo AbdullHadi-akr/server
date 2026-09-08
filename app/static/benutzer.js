@@ -134,7 +134,5 @@ document.getElementById("anlegen-formular").addEventListener("submit", async (e)
   listeLaden();
 });
 
-holen("/healthz").then((d) => {
-  document.getElementById("fuss-version").textContent = d.version || "?";
-});
-Anmeldung.start({ nurAdmin: true, beiAnmeldung: listeLaden });
+versionAnzeigen();
+seiteAbsichern({ nurAdmin: true, beiZugang: listeLaden });

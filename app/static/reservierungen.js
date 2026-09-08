@@ -15,6 +15,11 @@ function uhr(zeitstempel) {
     { hour: "2-digit", minute: "2-digit" });
 }
 
+function datumZeit(zeitstempel) {
+  return new Date(zeitstempel * 1000).toLocaleString("de-DE",
+    { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 // --- Zeitleiste je Modell ----------------------------------------------
 // Ein Tag von 0 bis 24 Uhr; jede Reservierung ein Balken, eigene hervorgehoben.
 function zeitleiste(modell, eintraege, behaelter) {
@@ -98,7 +103,9 @@ function eigeneZeichnen() {
   tabelle.appendChild(kopf);
   daten.eigene.forEach((r) => {
     const zeile = el("tr");
-    [r.modell, r.startText, r.endeText, r.slots, r.notiz].forEach(
+    // Ausschliesslich im Browser formatieren - sonst zeigt die Tabelle eine
+    // andere Uhrzeit als die Zeitleiste darueber.
+    [r.modell, datumZeit(r.start), datumZeit(r.ende), r.slots, r.notiz].forEach(
       (w) => zeile.appendChild(el("td", null, String(w))));
     const knopf = el("button", null, "Stornieren");
     knopf.addEventListener("click", async () => {
@@ -125,8 +132,6 @@ async function laden() {
   document.getElementById("f-tag").value = daten.tag;
   belegungZeichnen();
 
-  document.getElementById("anmelde-hinweis").hidden = daten.angemeldet;
-  document.getElementById("reservieren").hidden = !daten.angemeldet;
   if (!daten.angemeldet) return;
 
   const auswahl = document.getElementById("f-modell");
@@ -171,10 +176,15 @@ document.getElementById("reservieren-formular").addEventListener("submit", async
   const anzeige = document.getElementById("reservieren-meldung");
   const datum = document.getElementById("f-datum").value;
   anzeige.textContent = "…";
+  // Den Zeitstempel im Browser ausrechnen: Er kennt die Zeitzone des Nutzers.
+  // Eine reine Wanduhrzeit wuerde der Server in seiner eigenen Zone deuten.
+  const alsZeitstempel = (zeit) =>
+    Math.floor(new Date(datum + "T" + zeit).getTime() / 1000);
+
   const antwort = await senden("/api/reservierungen/anlegen", {
     modell: document.getElementById("f-modell").value,
-    start: datum + "T" + document.getElementById("f-von").value,
-    ende: datum + "T" + document.getElementById("f-bis").value,
+    start: alsZeitstempel(document.getElementById("f-von").value),
+    ende: alsZeitstempel(document.getElementById("f-bis").value),
     slots: Number(document.getElementById("f-slots").value),
     notiz: document.getElementById("f-notiz").value,
   });
@@ -188,45 +198,7 @@ document.getElementById("reservieren-formular").addEventListener("submit", async
   laden();
 });
 
-// Die Anmeldung nutzt denselben Baustein wie die übrigen Seiten; die Belegung
-// bleibt aber auch ohne Anmeldung sichtbar.
-document.getElementById("anmelde-formular").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const anzeige = document.getElementById("anmelde-meldung");
-  anzeige.textContent = "…";
-  const antwort = await senden("/api/auth/anmelden", {
-    name: document.getElementById("f-name").value,
-    passwort: document.getElementById("f-passwort").value,
-  });
-  if (!antwort.ok) {
-    anzeige.textContent = antwort.fehler;
-    return;
-  }
-  anzeige.textContent = "";
-  document.getElementById("f-passwort").value = "";
-  const zustand = await holen("/api/auth/status");
-  document.getElementById("angemeldet-als").textContent =
-    zustand.benutzer ? zustand.benutzer.name + " (" + zustand.benutzer.rolle + ")" : "";
-  document.getElementById("btn-abmelden").hidden = false;
-  laden();
-});
+versionAnzeigen();
+seiteAbsichern({ beiZugang: laden });
 
-document.getElementById("btn-abmelden").addEventListener("click", async () => {
-  await senden("/api/auth/abmelden", {});
-  document.getElementById("angemeldet-als").textContent = "";
-  document.getElementById("btn-abmelden").hidden = true;
-  laden();
-});
-
-holen("/healthz").then((d) => {
-  document.getElementById("fuss-version").textContent = d.version || "?";
-});
-holen("/api/auth/status").then((z) => {
-  if (z.benutzer) {
-    document.getElementById("angemeldet-als").textContent =
-      z.benutzer.name + " (" + z.benutzer.rolle + ")";
-    document.getElementById("btn-abmelden").hidden = false;
-  }
-  laden();
-});
 window.addEventListener("resize", () => { if (daten && daten.ok) belegungZeichnen(); });

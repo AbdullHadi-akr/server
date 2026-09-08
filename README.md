@@ -7,15 +7,30 @@ prüft auf Knopfdruck, ob Ollama korrekt läuft und die Modelle sauber antworten
 
 ## Die drei Seiten
 
+Die Navigation baut sich aus dem Anmeldestatus auf – jeder sieht nur die Reiter,
+die er auch nutzen kann:
+
+| Zustand | Reiter |
+|---|---|
+| immer | Einrichtung · Übersicht · Verlauf |
+| nicht angemeldet | + **Anmelden** |
+| angemeldet (`nutzer`) | + Reservierungen · Konto |
+| angemeldet (`admin`) | + Reservierungen · Einstellungen · Benutzer · Konto |
+
 | Seite | Zugang | Inhalt |
 |-------|--------|--------|
 | `/` | offen | Anleitung zur Einbindung in VS Code, Funktionsprüfung |
 | `/uebersicht` | offen, nur lesend | Dienst-Status, GPU, Modelle, Slot-Auslastung |
 | `/verlauf` | offen, nur lesend | Auslastung, Speicher und Anfragen über Tage und Wochen |
+| `/anmelden` | offen | Anmeldung; beim ersten Start Anlegen des Administrators |
+| `/reservierungen` | angemeldet | Belegung je Modell, Slots für ein Zeitfenster sichern |
 | `/betrieb` | **Admin** | Neustart des Containers, Nutzeranzahl und Kontext ändern |
 | `/benutzer` | **Admin** | Konten anlegen, sperren, Rolle ändern, Schlüssel erneuern |
 | `/konto` | angemeldet | Eigener Zugangsschlüssel und eigenes Passwort |
-| `/reservierungen` | offen (Reservieren: angemeldet) | Belegung je Modell, Slots für ein Zeitfenster sichern |
+
+Wer eine geschützte Seite ohne Anmeldung aufruft, landet auf `/anmelden` und nach
+der Anmeldung wieder dort, wo er hinwollte. Die Navigation ist keine Absicherung –
+der Server prüft die Rolle bei jedem Aufruf selbst und antwortet sonst mit 403.
 
 ## Starten
 
@@ -62,6 +77,7 @@ Alles über Umgebungsvariablen:
 | `PORTAL_PASSWORT`   | leer                                | Passwort fest vorgeben statt Ersteinrichtung. |
 | `DATEN_VERZEICHNIS` | `/data`                             | Ablage des Passwort-Hashes. |
 | `SITZUNGSDAUER`     | `28800`                             | Gültigkeit einer Anmeldung in Sekunden. |
+| `TZ`                | `Europe/Berlin`                     | Zeitzone für serverseitige Texte und Protokoll. |
 | `LOG_ZEILEN`        | `4000`                              | Log-Zeilen für die Auslastungsanalyse. |
 | `VERLAUF_AKTIV`     | `true`                              | Aufzeichnung des Verlaufs. |
 | `VERLAUF_TAKT`      | `60`                                | Sekunden zwischen zwei Messpunkten. |
@@ -292,6 +308,14 @@ ab, die nennt, wer bis wann reserviert hat.
 **Freigehalten wird hart:** Die Slots bleiben über das ganze Fenster reserviert,
 auch wenn der Reservierende gerade nichts rechnet. Das ist für ihn verlässlich
 und der Grund für die Begrenzung der Fensterlänge.
+
+**Zeitangaben** rechnet der Browser in Unix-Zeit um und stellt sie auch selbst
+dar – er kennt die Zeitzone des Nutzers. Eine reine Wanduhrzeit ohne Zonenangabe
+würde der Server in *seiner* Zone deuten; läuft der Container auf UTC und sitzt
+der Nutzer in Berlin, wären das zwei Stunden Unterschied. Damit auch die
+serverseitigen Texte stimmen (etwa „reserviert bis 15:00" in der 429-Meldung),
+setzt die `docker-compose.yml` `TZ`; der **Ollama-Container sollte dieselbe Zone
+haben**, weil die Auslastungsanalyse dessen Zugriffslog liest.
 
 **Regeln beim Anlegen**
 
@@ -534,8 +558,8 @@ app/
   verlauf.py    Aufzeichnung der Messwerte in SQLite, Verdichtung, Aufräumen
   proxy.py      Weiterleitung an Ollama; zählt laufende Anfragen je Modell
   config.py     Modelle, Endpunkte, Erzeugung der chatLanguageModels.json
-  static/       index.html, uebersicht.html, verlauf.html, betrieb.html,
-                style.css und je Seite eine .js-Datei
+  static/       je Seite eine .html und eine .js;
+                gemeinsam.js trägt Navigation, Zugangsschutz und Helfer
 Dockerfile
 docker-compose.yml
 ```

@@ -36,7 +36,6 @@ async function seiteAufbauen() {
 
   document.getElementById("kopf-url").textContent = daten.publicUrl;
   document.getElementById("fuss-url").textContent = daten.publicUrl;
-  document.getElementById("fuss-version").textContent = daten.version || "?";
   document.getElementById("curl-test").textContent = "curl " + daten.publicUrl + "/api/version";
   // Vier Leerzeichen Einrückung – so, wie die Vorlage vorgegeben ist.
   document.getElementById("konfig").textContent = JSON.stringify(konfig, null, 4);
@@ -195,6 +194,9 @@ async function modelltest() {
 
 document.getElementById("btn-diagnose").addEventListener("click", diagnose);
 document.getElementById("btn-modelltest").addEventListener("click", modelltest);
+
+versionAnzeigen();
+navigationLaden();
 
 seiteAufbauen()
   .then(diagnose)

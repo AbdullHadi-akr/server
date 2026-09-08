@@ -9,6 +9,12 @@ services:
       # Portal an Ollama weiter. Nur dieser eine Port muss offen sein.
       - "5021:5021"
     environment:
+      # Zeitzone des Containers. Die Oberflaeche rechnet Zeiten ohnehin im
+      # Browser, aber Protokoll und serverseitige Meldungen (etwa "reserviert
+      # bis 15:00") folgen dieser Angabe. Der Ollama-Container sollte dieselbe
+      # Zone haben, weil die Auslastungsanalyse dessen Zugriffslog liest.
+      TZ: "Europe/Berlin"
+
       # Adresse, unter der DAS PORTAL Ollama erreicht: Funktionspruefung,
       # Modelltests, Status und Auslastung laufen darueber.
       OLLAMA_URL: "http://AZEU-DEW-DEVGPU-02:5020"

@@ -311,3 +311,17 @@ button.zeitraum.aktiv { background: var(--akzent); border-color: var(--akzent); 
   background: var(--flaeche); color: var(--text);
   border: 1px solid var(--rand); border-radius: 6px; padding: 8px 10px;
 }
+
+/* --- Navigation: Konto rechts ------------------------------------------ */
+.navi { align-items: center; }
+.navi-konto { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.navi-name { color: var(--gedaempft); font-size: 13px; }
+.navi-abmelden {
+  background: transparent; color: #c6cede;
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.navi-abmelden:hover { border-color: var(--akzent); }
+@media (prefers-color-scheme: light) {
+  .navi-abmelden { color: var(--text); border-color: var(--rand); }
+}

@@ -189,12 +189,14 @@ class Handler(BaseHTTPRequestHandler):
             self._static("benutzer.html")
         elif pfad == "/konto":
             self._static("konto.html")
+        elif pfad == "/anmelden":
+            self._static("anmelden.html")
         elif pfad == "/reservierungen":
             self._static("reservierungen.html")
         elif pfad == "/healthz":
             # Schlanker Endpunkt fuer den Docker-Healthcheck.
             self._json({"status": "ok", "version": config.VERSION,
-                        "seiten": ["/", "/uebersicht", "/verlauf",
+                        "seiten": ["/", "/uebersicht", "/verlauf", "/anmelden",
                                    "/reservierungen", "/betrieb", "/benutzer",
                                    "/konto"],
                         "proxy": config.PROXY_PORT if config.PROXY_AKTIV else None})

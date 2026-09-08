@@ -71,10 +71,9 @@ document.getElementById("passwort-formular").addEventListener("submit", async (e
   anzeige.textContent = "Geändert – bitte neu anmelden.";
   document.getElementById("f-alt").value = "";
   document.getElementById("f-neu").value = "";
-  setTimeout(() => Anmeldung.pruefen(), 1200);
+  // Der Wechsel beendet die Sitzung; die Anmeldeseite fängt das ab.
+  setTimeout(() => { window.location.href = "/anmelden?weiter=/konto"; }, 1200);
 });
 
-holen("/healthz").then((d) => {
-  document.getElementById("fuss-version").textContent = d.version || "?";
-});
-Anmeldung.start({ beiAnmeldung: kontoLaden });
+versionAnzeigen();
+seiteAbsichern({ beiZugang: kontoLaden });

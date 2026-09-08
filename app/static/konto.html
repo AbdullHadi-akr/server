@@ -10,15 +10,7 @@
 <body>
 <header>
   <div class="wrap">
-    <nav class="navi">
-      <a href="/">Einrichtung</a>
-      <a href="/uebersicht">Übersicht</a>
-      <a href="/verlauf">Verlauf</a>
-      <a href="/reservierungen">Reservierungen</a>
-      <a href="/betrieb">Einstellungen</a>
-      <a href="/benutzer">Benutzer</a>
-      <a href="/konto" class="aktiv">Konto</a>
-    </nav>
+    <nav class="navi" id="navi"></nav>
     <h1>Konto</h1>
     <p class="lead">Zugangsschlüssel für VS Code und eigenes Passwort.</p>
   </div>
@@ -26,26 +18,6 @@
 
 <main class="wrap">
 
-  <section id="anmeldung" hidden>
-    <h2 id="anmeldung-titel">Anmeldung</h2>
-    <p class="hinweis" id="anmeldung-text"></p>
-    <form id="anmelde-formular" class="regler" autocomplete="off">
-      <label for="f-name">Benutzername</label>
-      <input type="text" id="f-name" autocomplete="username" required>
-      <label for="f-passwort">Passwort</label>
-      <input type="password" id="f-passwort" autocomplete="current-password" required>
-      <div id="wiederholung-block" hidden>
-        <label for="f-passwort2">Passwort wiederholen</label>
-        <input type="password" id="f-passwort2" autocomplete="new-password">
-      </div>
-      <div class="knopfleiste">
-        <button type="submit" class="primaer" id="btn-anmelden">Anmelden</button>
-        <span id="anmelde-meldung" class="status"></span>
-      </div>
-    </form>
-  </section>
-
-  <div id="geschuetzt" hidden>
     <section>
       <h2>Zugangsschlüssel</h2>
       <div id="konto-karte">Lade …</div>
@@ -83,9 +55,7 @@
 </main>
 
 <footer class="wrap">
-  <p>Angemeldet als <strong id="angemeldet-als"></strong>
-     <button id="btn-abmelden" hidden>Abmelden</button>
-     · Version <span id="fuss-version">…</span></p>
+  <p>Version <span id="fuss-version">…</span></p>
 </footer>
 
 <script src="/gemeinsam.js"></script>

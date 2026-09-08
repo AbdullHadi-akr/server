@@ -424,10 +424,6 @@ function starten() {
   setInterval(statusLaden, 30000);
 }
 
-holen("/healthz").then((d) => {
-  document.getElementById("fuss-version").textContent = d.version || "?";
-});
-
-// Die Einstellungen sind Administratoren vorbehalten; normale Nutzer sehen
-// nur den Hinweis aus #kein-zugriff.
-Anmeldung.start({ nurAdmin: true, beiAnmeldung: starten });
+versionAnzeigen();
+// Einstellungen sind Administratoren vorbehalten.
+seiteAbsichern({ nurAdmin: true, beiZugang: starten });

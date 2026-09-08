@@ -297,8 +297,7 @@ window.addEventListener("resize", () => {
   umbauTakt = setTimeout(() => { if (daten && daten.ok) alleZeichnen(); }, 200);
 });
 
-holen("/healthz").then((d) => {
-  document.getElementById("fuss-version").textContent = d.version || "?";
-});
+versionAnzeigen();
+navigationLaden();
 laden();
 setInterval(laden, 60000);

@@ -1,7 +1,8 @@
 "use strict";
 
-// Bausteine, die mehrere Seiten brauchen: kleine DOM-Helfer, HTTP-Aufrufe
-// und die Anmeldung. Wird vor der jeweiligen Seiten-Datei eingebunden.
+// Bausteine, die alle Seiten brauchen: kleine DOM-Helfer, HTTP-Aufrufe, die
+// rollenabhaengige Navigation und der Zugangsschutz. Wird vor der jeweiligen
+// Seiten-Datei eingebunden.
 
 function el(tag, klasse, text) {
   const knoten = document.createElement(tag);
@@ -28,8 +29,9 @@ async function senden(pfad, rumpf) {
   const daten = await antwort.json().catch(
     () => ({ ok: false, fehler: "HTTP " + antwort.status }));
   if (antwort.status === 401 && !pfad.startsWith("/api/auth/")) {
-    // Sitzung abgelaufen - zurück zur Anmeldung.
-    if (window.Anmeldung) window.Anmeldung.zeigen();
+    // Sitzung abgelaufen - zur Anmeldeseite und danach hierher zurück.
+    const ziel = window.location.pathname + window.location.search;
+    window.location.href = "/anmelden?weiter=" + encodeURIComponent(ziel);
   }
   return daten;
 }
@@ -43,125 +45,104 @@ function liste(paare) {
   return dl;
 }
 
-// --- Anmeldung ---------------------------------------------------------
-// Erwartet im HTML die Abschnitte #anmeldung (Formular) und #geschuetzt
-// (Inhalt). Ruft nach erfolgreicher Anmeldung den übergebenen Rückruf auf.
-window.Anmeldung = (function () {
-  let zustand = null;
-  let beiAnmeldung = null;
-  let nurAdmin = false;
+// --- Navigation --------------------------------------------------------
+// Eine einzige Quelle für alle Seiten: Welche Reiter erscheinen, hängt davon
+// ab, ob jemand angemeldet ist und welche Rolle er hat.
+const REITER_IMMER = [
+  ["/", "Einrichtung"],
+  ["/uebersicht", "Übersicht"],
+  ["/verlauf", "Verlauf"],
+];
+const REITER_ADMIN = [
+  ["/betrieb", "Einstellungen"],
+  ["/benutzer", "Benutzer"],
+];
 
-  function zeigen() {
-    document.getElementById("anmeldung").hidden = false;
-    document.getElementById("geschuetzt").hidden = true;
-    const erst = zustand && !zustand.eingerichtet;
-    document.getElementById("anmeldung-titel").textContent =
-      erst ? "Administrator anlegen" : "Anmeldung";
-    document.getElementById("btn-anmelden").textContent =
-      erst ? "Konto anlegen" : "Anmelden";
-    document.getElementById("wiederholung-block").hidden = !erst;
-    document.getElementById("f-passwort").autocomplete =
-      erst ? "new-password" : "current-password";
+function navigationAufbauen(zustand) {
+  const navi = document.getElementById("navi");
+  if (!navi) return;
+  navi.textContent = "";
 
-    let text;
-    if (erst) {
-      text = "Es gibt noch kein Konto. Lege jetzt den Administrator an " +
-        "(Passwort mindestens " + zustand.minLaenge + " Zeichen). Gespeichert " +
-        "wird nur ein Hash, nie das Passwort selbst.";
-      if (!zustand.speicherbar) {
-        text += " Achtung: " + zustand.datenVerzeichnis + " ist nicht " +
-          "beschreibbar – ohne eingebundenes Volume lässt sich kein Konto " +
-          "speichern.";
-      }
-    } else {
-      text = "Bitte mit dem persönlichen Konto anmelden. " +
-        "Übersicht und Verlauf sind auch ohne Anmeldung zugänglich.";
-    }
-    document.getElementById("anmeldung-text").textContent = text;
+  // Reihenfolge: erst was alle betrifft, dann die Adminwerkzeuge, Konto zuletzt.
+  let reiter = REITER_IMMER.slice();
+  if (zustand && zustand.angemeldet) {
+    reiter.push(["/reservierungen", "Reservierungen"]);
+    if (zustand.istAdmin) reiter = reiter.concat(REITER_ADMIN);
+    reiter.push(["/konto", "Konto"]);
+  } else {
+    reiter.push(["/anmelden", "Anmelden"]);
   }
 
-  function inhaltZeigen() {
-    document.getElementById("anmeldung").hidden = true;
-    document.getElementById("geschuetzt").hidden = false;
-    if (beiAnmeldung) beiAnmeldung(zustand);
-  }
+  const hier = window.location.pathname.replace(/\/$/, "") || "/";
+  reiter.forEach(([pfad, beschriftung]) => {
+    const verweis = el("a", pfad === hier ? "aktiv" : null, beschriftung);
+    verweis.href = pfad;
+    navi.appendChild(verweis);
+  });
 
-  async function pruefen() {
-    zustand = await holen("/api/auth/status");
-    // Seiten für Administratoren zeigen normalen Nutzern nur einen Hinweis.
-    if (zustand.angemeldet && nurAdmin && !zustand.istAdmin) {
-      document.getElementById("anmeldung").hidden = true;
-      document.getElementById("geschuetzt").hidden = true;
-      const bereich = document.getElementById("kein-zugriff");
-      if (bereich) bereich.hidden = false;
-      benutzerAnzeigen();
-      return;
-    }
-    if (zustand.angemeldet) inhaltZeigen();
-    else zeigen();
-    benutzerAnzeigen();
-  }
-
-  function benutzerAnzeigen() {
-    const feld = document.getElementById("angemeldet-als");
-    if (!feld) return;
-    feld.textContent = zustand && zustand.benutzer
-      ? zustand.benutzer.name + " (" + zustand.benutzer.rolle + ")" : "";
-    const knopf = document.getElementById("btn-abmelden");
-    if (knopf) knopf.hidden = !(zustand && zustand.angemeldet);
-  }
-
-  function verdrahten() {
-    document.getElementById("anmelde-formular").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("f-name");
-      const feld = document.getElementById("f-passwort");
-      const anzeige = document.getElementById("anmelde-meldung");
-      const erst = zustand && !zustand.eingerichtet;
-
-      if (erst && feld.value !== document.getElementById("f-passwort2").value) {
-        anzeige.textContent = "Die beiden Eingaben stimmen nicht überein.";
-        return;
-      }
-      anzeige.textContent = "…";
-      const daten = await senden(
-        erst ? "/api/auth/einrichten" : "/api/auth/anmelden",
-        { name: name.value, passwort: feld.value });
-      if (!daten.ok) {
-        anzeige.textContent = daten.fehler;
-        return;
-      }
-      feld.value = "";
-      anzeige.textContent = "";
-      if (daten.token) {
-        // Bei der Ersteinrichtung ist der Zugangsschlüssel nur jetzt sichtbar.
-        window.alert("Konto angelegt.\n\nDein Zugangsschlüssel für VS Code:\n\n" +
-          daten.token + "\n\nEr ist nur jetzt im Klartext zu sehen. " +
-          "Unter /konto lässt sich jederzeit ein neuer erzeugen.");
-      }
-      await pruefen();
+  if (zustand && zustand.angemeldet && zustand.benutzer) {
+    const konto = el("span", "navi-konto");
+    konto.appendChild(el("span", "navi-name",
+      zustand.benutzer.name + " · " + zustand.benutzer.rolle));
+    const abmelden = el("button", "navi-abmelden", "Abmelden");
+    abmelden.addEventListener("click", async () => {
+      await senden("/api/auth/abmelden", {});
+      window.location.href = "/uebersicht";
     });
-
-    const abmelden = document.getElementById("btn-abmelden");
-    if (abmelden) {
-      abmelden.addEventListener("click", async () => {
-        await senden("/api/auth/abmelden", {});
-        zustand = await holen("/api/auth/status");
-        zeigen();
-        benutzerAnzeigen();
-      });
-    }
+    konto.appendChild(abmelden);
+    navi.appendChild(konto);
   }
+}
 
-  return {
-    start(optionen) {
-      nurAdmin = Boolean(optionen && optionen.nurAdmin);
-      beiAnmeldung = optionen && optionen.beiAnmeldung;
-      verdrahten();
-      pruefen();
-    },
-    pruefen,
-    zeigen,
-    zustand: () => zustand,
-  };
-})();
+// --- Zugang zu geschützten Seiten --------------------------------------
+// Nicht angemeldet? Zur Anmeldeseite und danach zurück. Wer angemeldet ist,
+// aber die Rolle nicht hat, bekommt einen Hinweis statt eines leeren Gerüsts.
+async function seiteAbsichern(optionen) {
+  const zustand = await holen("/api/auth/status");
+  navigationAufbauen(zustand);
+
+  if (!zustand.angemeldet) {
+    const ziel = window.location.pathname + window.location.search;
+    window.location.href = "/anmelden?weiter=" + encodeURIComponent(ziel);
+    return null;
+  }
+  if (optionen && optionen.nurAdmin && !zustand.istAdmin) {
+    keinZugriff();
+    return null;
+  }
+  if (optionen && optionen.beiZugang) optionen.beiZugang(zustand);
+  return zustand;
+}
+
+function keinZugriff() {
+  const bereich = document.querySelector("main");
+  bereich.textContent = "";
+  const abschnitt = el("section");
+  abschnitt.appendChild(el("h2", null, "Administratoren vorbehalten"));
+  const text = el("p", "hinweis");
+  text.appendChild(document.createTextNode("Diese Seite dürfen nur "
+    + "Administratoren öffnen. Dein Zugangsschlüssel und deine Reservierungen "
+    + "stehen unter "));
+  const konto = el("a", null, "Konto");
+  konto.href = "/konto";
+  text.appendChild(konto);
+  text.appendChild(document.createTextNode(", der Zustand des Dienstes unter "));
+  const uebersicht = el("a", null, "Übersicht");
+  uebersicht.href = "/uebersicht";
+  text.appendChild(uebersicht);
+  text.appendChild(document.createTextNode("."));
+  abschnitt.appendChild(text);
+  bereich.appendChild(abschnitt);
+}
+
+// Offene Seiten bauen nur die Navigation auf.
+function navigationLaden() {
+  holen("/api/auth/status").then(navigationAufbauen);
+}
+
+// Version im Seitenfuß, sofern die Seite ein Feld dafür hat.
+function versionAnzeigen() {
+  const feld = document.getElementById("fuss-version");
+  if (!feld) return;
+  holen("/healthz").then((d) => { feld.textContent = d.version || "?"; });
+}
