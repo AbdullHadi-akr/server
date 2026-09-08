@@ -313,15 +313,29 @@ button.zeitraum.aktiv { background: var(--akzent); border-color: var(--akzent); 
 }
 
 /* --- Navigation: Konto rechts ------------------------------------------ */
-.navi { align-items: center; }
-.navi-konto { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.navi-name { color: var(--gedaempft); font-size: 13px; }
-.navi-abmelden {
-  background: transparent; color: #c6cede;
-  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
-  padding: 5px 12px; font-size: 13px; cursor: pointer;
+/* Der Kopfbereich ist in beiden Modi dunkel (fester Verlauf oben). Deshalb
+   tragen seine Bedienelemente feste helle Farben - eine Umschaltung auf die
+   hellen Themenfarben ergaebe dunkle Schrift auf dunklem Grund. */
+.navi { align-items: center; flex-wrap: wrap; }
+.navi-konto {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+  padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.14);
 }
-.navi-abmelden:hover { border-color: var(--akzent); }
-@media (prefers-color-scheme: light) {
-  .navi-abmelden { color: var(--text); border-color: var(--rand); }
+.navi-name { color: #a9b3c6; font-size: 13px; white-space: nowrap; }
+.navi-abmelden {
+  background: rgba(255, 255, 255, 0.10); color: #e6e8ee;
+  border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  white-space: nowrap;
+}
+.navi-abmelden:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: var(--akzent); color: #fff;
+}
+.navi-abmelden:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+/* Auf schmalen Fenstern rutscht der Kontobereich in eine eigene Zeile,
+   statt die Reiter zu quetschen. */
+@media (max-width: 640px) {
+  .navi-konto { margin-left: 0; border-left: 0; padding-left: 0; width: 100%; }
 }

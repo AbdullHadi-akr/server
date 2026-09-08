@@ -4,7 +4,7 @@ import os
 
 # Version des Portals. Wird im Fuss jeder Seite angezeigt - so ist sofort
 # erkennbar, ob der Container noch auf einem alten Image laeuft.
-VERSION = "2.7 (Viertelstundenraster)"
+VERSION = "2.8 (Abmelden sichtbar)"
 
 # Adresse, unter der das Portal Ollama erreicht (Server-zu-Server). Sie gilt
 # fuer alle eigenen Aufrufe: Funktionspruefung, Modelltests, Auslastung.
