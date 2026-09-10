@@ -555,15 +555,22 @@ Für automatisierte Deployments lässt sich das Passwort alternativ per
 
 ## Einrichtung in VS Code (Kurzfassung)
 
-1. <kbd>Strg</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> → **Chat: Manage Language Models**
-2. **Add Models** → **Custom Endpoint**, dann mehrfach <kbd>Enter</kbd>, bis sich
-   `chatLanguageModels.json` öffnet.
-3. Das erzeugte Template löschen und den vom Portal angezeigten Inhalt einfügen
-   (Kopieren-Knopf auf der Seite), speichern.
-4. Im Chat das Modell `qwen3 (A100)` bzw. `qwen3-coder (A100)` wählen.
+1. Am Portal anmelden, `/konto` öffnen, **Neuen Schlüssel erzeugen** und den
+   Schlüssel (`mp_…`) kopieren. Er ist nur einmal im Klartext zu sehen.
+2. <kbd>Strg</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> → **Chat: Manage Language Models**
+3. **Add Models** → **Custom Endpoint**. VS Code fragt nach der Adresse (die vom
+   Portal angezeigte URL, ohne `/v1`) und nach einem **API-Key**: dort den
+   Zugangsschlüssel aus Schritt 1 eintragen. Danach mehrfach <kbd>Enter</kbd>,
+   bis sich `chatLanguageModels.json` öffnet.
+4. Das erzeugte Template löschen und den vom Portal angezeigten Inhalt einfügen
+   (Kopieren-Knopf auf der Seite), speichern. Der Schlüssel gehört **nicht** in
+   diese Datei, VS Code verwahrt ihn getrennt.
+5. Im Chat das Modell `qwen3 (A100)` bzw. `qwen3-coder (A100)` wählen.
 
 Die erste Antwort kann verzögert kommen, weil Ollama das Modell erst lädt; alle
-weiteren Antworten kommen dann zügig.
+weiteren Antworten kommen dann zügig. Ein **401** mit Hinweis auf `/konto` heißt
+dagegen, dass der API-Key fehlt oder veraltet ist: neuen Schlüssel erzeugen und
+in VS Code nachtragen.
 
 ## Aufbau
 
