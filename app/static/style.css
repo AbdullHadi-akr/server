@@ -35,7 +35,7 @@ body {
 header {
   background: linear-gradient(160deg, #1c2740, #12141c);
   border-bottom: 1px solid var(--rand);
-  padding: 40px 0 32px;
+  padding: 20px 0;
 }
 header h1 { margin: 0 0 8px; font-size: 30px; color: #fff; }
 .lead { margin: 0; color: #c6cede; max-width: 70ch; }
