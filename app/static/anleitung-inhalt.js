@@ -43,24 +43,37 @@ const KAPITEL = [
   {
     id: "einrichtung",
     titel: "Einrichtung in VS Code",
-    kurz: "Modelle im Chat verfügbar machen und den Zugangsschlüssel eintragen.",
+    kurz: "Zugangsschlüssel holen, eintragen und die Modelle im Chat verfügbar machen.",
     bloecke: [
       { typ: "schritte", inhalt: [
+        ["Zugangsschlüssel holen",
+         "Am Portal anmelden, Seite Konto öffnen, „Neuen Schlüssel erzeugen“ " +
+         "drücken und den Schlüssel (mp_…) kopieren. Er ist nur dieses eine " +
+         "Mal im Klartext zu sehen. Wer noch kein Konto hat, bekommt es von " +
+         "einem Administrator."],
         ["Modellverwaltung öffnen",
          "Strg+Shift+P drücken und „Chat: Manage Language Models“ auswählen."],
-        ["Eigenen Endpunkt anlegen",
-         "„Add Models“ → „Custom Endpoint“. Wo VS Code nach einem API-Key " +
-         "fragt, gehört der persönliche Zugangsschlüssel aus der Seite Konto " +
-         "hinein. Daran erkennt das Portal, wer anfragt."],
+        ["Endpunkt anlegen und Schlüssel eintragen",
+         "„Add Models“ → „Custom Endpoint“. VS Code fragt nach der Adresse " +
+         "(sie steht auf der Seite Einrichtung, ohne /v1 am Ende) und nach " +
+         "einem API-Key. In das Key-Feld gehört der eigene Zugangsschlüssel: " +
+         "Daran erkennt das Portal, wer anfragt, und nur so greifen die " +
+         "eigenen Reservierungen."],
         ["Konfiguration einfügen",
          "Weiter, bis sich chatLanguageModels.json öffnet. Das erzeugte " +
          "Template löschen und den Block von der Seite Einrichtung einfügen. " +
          "Dort steht er immer passend zur laufenden Konfiguration, deshalb " +
-         "wird er hier nicht wiederholt."],
+         "wird er hier nicht wiederholt. Der Schlüssel steht nicht in dieser " +
+         "Datei; VS Code verwahrt ihn getrennt."],
         ["Modell im Chat wählen",
          "Im Chat-Fenster oben rechts die Modellauswahl öffnen und qwen3 (A100) " +
          "oder qwen3-coder (A100) auswählen."],
       ] },
+      { typ: "hinweis", stufe: "warnung", inhalt:
+        "Solange der Schlüssel fehlt, zählen die Anfragen als „ohne Token“ und " +
+        "Reservierungen greifen nicht. Ist die Schlüsselpflicht eingeschaltet, " +
+        "weist das Portal solche Anfragen ganz ab. Ein neuer Schlüssel macht " +
+        "den alten sofort ungültig und muss in VS Code nachgetragen werden." },
       { typ: "hinweis", stufe: "hinweis", inhalt:
         "Die erste Antwort kann eine Weile dauern: Ollama lädt das Modell erst " +
         "in den GPU-Speicher. Alle weiteren Antworten kommen zügig. Das ist " +

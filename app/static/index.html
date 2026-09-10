@@ -27,16 +27,35 @@
     <h2>Einrichtung in VS&nbsp;Code</h2>
     <ol class="schritte">
       <li>
+        <h3>Zugangsschlüssel holen</h3>
+        <p>Am Portal anmelden, die Seite <a href="/konto">Konto</a> öffnen und
+        dort <em>Neuen Schlüssel erzeugen</em> drücken. Der Schlüssel
+        (<code>mp_…</code>) erscheint <strong>nur dieses eine Mal</strong> im
+        Klartext, also gleich kopieren.</p>
+        <p class="hinweis">
+          Noch kein Konto? Ein Administrator legt es an und nennt dabei
+          Benutzername und erstes Passwort.
+        </p>
+      </li>
+      <li>
         <h3>Modellverwaltung öffnen</h3>
         <p><kbd>Strg</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> drücken und
         <em>Chat: Manage Language Models</em> auswählen.</p>
       </li>
       <li>
-        <h3>Eigenen Endpunkt anlegen</h3>
-        <p><em>Add Models</em> → <em>Custom Endpoint</em>. Danach mehrfach
-        <kbd>Enter</kbd> drücken, bis sich die Datei
-        <code>chatLanguageModels.json</code> öffnet.</p>
+        <h3>Endpunkt anlegen und Schlüssel eintragen</h3>
+        <p><em>Add Models</em> → <em>Custom Endpoint</em>. VS&nbsp;Code fragt
+        nacheinander nach der Adresse und nach einem <em>API-Key</em>:</p>
+        <dl class="eng">
+          <dt>URL</dt>
+          <dd><code id="endpunkt-url">…</code> (ohne <code>/v1</code>, das hängt
+          VS&nbsp;Code selbst an)</dd>
+          <dt>API-Key</dt>
+          <dd>der eigene Zugangsschlüssel aus Schritt 1</dd>
+        </dl>
         <p class="hinweis" id="schluessel-hinweis"></p>
+        <p>Danach <kbd>Enter</kbd> drücken, bis sich die Datei
+        <code>chatLanguageModels.json</code> öffnet.</p>
       </li>
       <li>
         <h3>Vorlage ersetzen</h3>
@@ -56,7 +75,9 @@
         </div>
         <p class="hinweis">
           Beide Modelle stehen in einem gemeinsamen Anbieter-Eintrag, du musst
-          die Prozedur also nur einmal durchlaufen.
+          die Prozedur also nur einmal durchlaufen. Der Schlüssel steht bewusst
+          nicht in dieser Datei: VS&nbsp;Code verwahrt ihn getrennt und schickt
+          ihn als <code>Authorization</code>-Kopfzeile mit.
         </p>
       </li>
       <li>
@@ -104,6 +125,19 @@
       erreichbar sein, ohne <code>/v1</code> am Ende. Das hängt VS&nbsp;Code
       selbst an. Test im Terminal:
       <code id="curl-test">curl …/api/version</code></dd>
+
+      <dt>401 oder „kein gültiger Zugangsschlüssel“</dt>
+      <dd>Der eingetragene API-Key fehlt, ist veraltet oder gehört zu einem
+      gesperrten Konto. Unter <a href="/konto">Konto</a> einen neuen Schlüssel
+      erzeugen und ihn in VS&nbsp;Code hinterlegen:
+      <kbd>Strg</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> →
+      <em>Chat: Manage Language Models</em>, dort den Anbieter-Eintrag erneut
+      öffnen. Ein neuer Schlüssel macht den alten sofort ungültig.</dd>
+
+      <dt>Anfragen werden mit Hinweis auf eine Reservierung abgewiesen</dt>
+      <dd>Jemand hat für dieses Zeitfenster Slots reserviert. Die Meldung nennt
+      wer und bis wann. Später erneut versuchen oder unter
+      <a href="/reservierungen">Reservierungen</a> selbst eines eintragen.</dd>
 
       <dt>Modell taucht in der Auswahl nicht auf</dt>
       <dd>JSON-Syntax prüfen (jede Zeile außer der letzten im Objekt braucht ein

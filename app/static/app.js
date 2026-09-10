@@ -36,6 +36,7 @@ async function seiteAufbauen() {
 
   document.getElementById("kopf-url").textContent = daten.publicUrl;
   document.getElementById("fuss-url").textContent = daten.publicUrl;
+  document.getElementById("endpunkt-url").textContent = daten.publicUrl;
   document.getElementById("curl-test").textContent = "curl " + daten.publicUrl + "/api/version";
   // Vier Leerzeichen Einrückung, so wie die Vorlage sie vorgibt.
   document.getElementById("konfig").textContent = JSON.stringify(konfig, null, 4);
@@ -51,16 +52,28 @@ async function seiteAufbauen() {
       "aber sichtbar, wie viele Slots je Modell gerade belegt sind.";
   }
 
-  // Der Schlüssel-Schritt wird erst wichtig, wenn der Proxy die Anfragen sieht.
+  // Wie streng der Schlüssel-Schritt ist, hängt am Betriebsmodus: Ohne Proxy
+  // sieht das Portal die Chat-Anfragen gar nicht, mit Proxy zählt es sie, und
+  // unter TOKEN_PFLICHT lässt es nur noch Anfragen mit Schlüssel durch.
   const schluessel = document.getElementById("schluessel-hinweis");
-  if (schluessel && daten.ueberProxy) {
-    schluessel.textContent = daten.tokenPflicht
-      ? "Wichtig: Wo VS Code nach einem API-Key fragt, gehört der persönliche " +
-        "Zugangsschlüssel aus dem Portal hinein (Seite „Konto“). Ohne ihn " +
-        "werden Anfragen abgewiesen."
-      : "Wo VS Code nach einem API-Key fragt, am besten schon jetzt den " +
-        "persönlichen Zugangsschlüssel aus dem Portal eintragen (Seite " +
-        "„Konto“). Noch geht es auch ohne, später wird er verlangt.";
+  if (schluessel) {
+    if (!daten.ueberProxy) {
+      schluessel.textContent =
+        "Die Anfragen laufen zurzeit direkt zu Ollama, ein API-Key wird also " +
+        "nicht geprüft. Das Feld darf leer bleiben oder einen beliebigen Wert " +
+        "enthalten. Trage trotzdem den Schlüssel aus dem Portal ein, dann " +
+        "wirkt eine spätere Umstellung nicht auf einen Schlag aus.";
+    } else if (daten.tokenPflicht) {
+      schluessel.textContent =
+        "Der Schlüssel ist Pflicht: Anfragen ohne gültigen Schlüssel weist " +
+        "das Portal mit 401 ab. Nur mit ihm greifen außerdem deine " +
+        "Reservierungen, weil das Portal erst daran erkennt, wer anfragt.";
+    } else {
+      schluessel.textContent =
+        "Ohne Schlüssel läuft der Chat vorerst weiter, die Anfragen zählen " +
+        "dann aber als „ohne Token“, und Reservierungen greifen nicht. " +
+        "Später wird der Schlüssel verlangt, trage ihn also gleich jetzt ein.";
+    }
   }
 
   document.getElementById("modellnamen").textContent =
